@@ -1,14 +1,56 @@
 import { Button } from "@/components/ui/button";
-import { Calendar, Shield, Sparkles, UserPlus } from "lucide-react";
+import { Calendar, Sparkles, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
-import AnimatedBackground from "./AnimatedBackground";
+import Squares from "./Squares";
+import CardNav from "./CardNav";
+import SplitText from "@/components/shared/SplitText";
+import logo from "/logo.svg";
 
 const Hero = () => {
+  const navItems = [
+    {
+      label: "Services",
+      bgColor: "hsl(200 85% 45%)", // Primary blue
+      textColor: "#fff",
+      links: [
+        { label: "Diagnostic Tests", href: "/", ariaLabel: "View diagnostic tests" },
+        { label: "Home Collection", href: "/", ariaLabel: "Home sample collection" },
+        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" }
+      ]
+    },
+    {
+      label: "About",
+      bgColor: "hsl(180 65% 50%)", // Secondary teal
+      textColor: "#fff",
+      links: [
+        { label: "How It Works", href: "/", ariaLabel: "Learn how it works" },
+        { label: "Our Team", href: "/", ariaLabel: "Meet our team" }
+      ]
+    },
+    {
+      label: "Contact",
+      bgColor: "hsl(150 70% 45%)", // Health green
+      textColor: "#fff",
+      links: [
+        { label: "Support", href: "/", ariaLabel: "Contact support" },
+        { label: "Book Test", href: "/signup", ariaLabel: "Book a test" }
+      ]
+    }
+  ];
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <AnimatedBackground />
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
+      <CardNav
+        logo={logo}
+        logoAlt="Lab2Home Logo"
+        items={navItems}
+        baseColor="#fff"
+        menuColor="hsl(200 85% 45%)"
+        buttonLink="/signup"
+      />
+      <Squares speed={0.5} squareSize={40} direction="diagonal" />
       
-      <div className="relative z-10 container mx-auto px-4 py-20">
+      <div className="relative z-10 container mx-auto px-4 py-20 pointer-events-none">
         <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-primary/20 shadow-soft mb-6">
@@ -19,12 +61,21 @@ const Hero = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-            Lab at Your{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Doorstep
-            </span>
-          </h1>
+          <div className="mb-6">
+            <SplitText
+              text="Lab at Your DoorSteps"
+              tag="h1"
+              className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight"
+              splitType="chars"
+              delay={50}
+              duration={0.8}
+              ease="power3.out"
+              from={{ opacity: 0, y: 50 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.3}
+              rootMargin="0px"
+            />
+          </div>
           
           <p className="text-xl md:text-2xl text-muted-foreground mb-4">
             Care at Your Fingertips
@@ -36,7 +87,7 @@ const Hero = () => {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 pointer-events-auto">
             <Button 
               size="lg" 
               className="group text-lg px-8 py-6 shadow-medium hover:shadow-strong transition-all duration-300"
@@ -79,8 +130,8 @@ const Hero = () => {
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float-slow" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float -z-10" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float-slow -z-10" />
     </section>
   );
 };

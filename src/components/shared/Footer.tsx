@@ -42,10 +42,6 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Contact</h4>
             <div className="space-y-3 text-background/80">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">FAST-NUCES, Chiniot-Faisalabad Campus</span>
-              </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">+92 XXX XXXXXXX</span>
@@ -59,7 +55,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-background/20 pt-8 text-center text-background/60 text-sm">
-          <p>© 2023 Lab2Home. All rights reserved. | Supervised by Mahzaib Younus</p>
+          <p>© 2025 Lab2Home. All rights reserved. | Supervised by Mahzaib Younus</p>
           <p className="mt-2">Developed by Muhammad Usman Awan, Faizan Ahmad, Muhammad Ahmad</p>
         </div>
       </div>

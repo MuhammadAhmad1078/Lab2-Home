@@ -12,9 +12,9 @@ const services = [
   },
   {
     icon: Users,
-    title: "For Everyone",
-    description: "Specially designed for elderly and mobility-restricted individuals who find it difficult to visit labs. Healthcare made accessible for all.",
-    features: ["Elderly Care", "Mobility Support", "Family Plans"],
+    title: "AI Report Interpretation",
+    description: "Get your lab reports explained in simple, patient-friendly language using advanced AI technology. Understand your health data better.",
+    features: ["AI-Powered Analysis", "Simple Language", "Instant Results"],
     color: "secondary",
   },
   {
