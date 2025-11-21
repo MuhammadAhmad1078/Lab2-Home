@@ -15,13 +15,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import AnimatedBackground from "@/components/AnimatedBackground";
-import Footer from "@/components/Footer";
+import Squares from "@/components/home/Squares";
+import Footer from "@/components/shared/Footer";
+import CardNav from "@/components/home/CardNav";
 import { 
   UserPlus, Mail, Lock, User, Phone, Calendar, 
   FlaskConical, ArrowLeft, Building2,
-  GraduationCap, MapPin, FileText
+  GraduationCap, MapPin, FileText, Bike
 } from "lucide-react";
+import logo from "/logo.svg";
 
 // Role types
 type UserRole = "patient" | "lab" | "phlebotomist";
@@ -97,7 +99,7 @@ const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => voi
       id: "phlebotomist" as UserRole,
       title: "Phlebotomist",
       description: "Collect samples at patient locations and manage collections",
-      icon: FlaskConical,
+      icon: Bike,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
     },
@@ -670,6 +672,7 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
 
 const Signup = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
@@ -690,12 +693,72 @@ const Signup = () => {
     }
   };
 
+  const navItems = [
+    {
+      label: "Services",
+      bgColor: "hsl(200 85% 45%)",
+      textColor: "#fff",
+      links: [
+        { label: "Diagnostic Tests", href: "/", ariaLabel: "View diagnostic tests" },
+        { label: "Home Collection", href: "/", ariaLabel: "Home sample collection" },
+        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" }
+      ]
+    },
+    {
+      label: "About",
+      bgColor: "hsl(180 65% 50%)",
+      textColor: "#fff",
+      links: [
+        { label: "How It Works", href: "/", ariaLabel: "Learn how it works" },
+        { label: "Our Team", href: "/", ariaLabel: "Meet our team" }
+      ]
+    },
+    {
+      label: "Contact",
+      bgColor: "hsl(150 70% 45%)",
+      textColor: "#fff",
+      links: [
+        { label: "Support", href: "/", ariaLabel: "Contact support" },
+        { label: "Book Test", href: "/login", ariaLabel: "Sign in to book" }
+      ]
+    }
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
       <section className="relative flex-1 flex items-center justify-center overflow-hidden py-12">
-        <AnimatedBackground />
+        <CardNav
+          logo={logo}
+          logoAlt="Lab2Home Logo"
+          items={navItems}
+          baseColor="#fff"
+          menuColor="hsl(200 85% 45%)"
+          buttonLink="/login"
+          onExpandChange={setIsNavExpanded}
+        />
+        <Squares speed={0.5} squareSize={40} direction="diagonal" />
         
-        <div className="relative z-10 container mx-auto px-4 w-full max-w-2xl">
+        {/* Animated Title - Shows when navbar is closed, hides when nav cards appear */}
+        <div 
+          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${
+            isNavExpanded ? 'opacity-0 scale-95 -translate-y-8 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
+          }`}
+        >
+          <div className="animate-fade-in-up">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight">
+              Join{" "}
+              <span className="bg-gradient-primary bg-clip-text text-transparent">
+                Lab2Home
+              </span>
+              {" "}Today
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground animate-pulse">
+              Healthcare at Your Doorstep
+            </p>
+          </div>
+        </div>
+        
+        <div className="relative z-10 container mx-auto px-4 w-full max-w-2xl pointer-events-none pt-96 md:pt-72">
           <div className="animate-fade-in-up">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-primary/20 shadow-soft mb-6 mx-auto w-fit">
@@ -706,7 +769,7 @@ const Signup = () => {
             </div>
 
             {/* Signup Card */}
-            <Card className="bg-card/90 backdrop-blur-sm border-primary/20 shadow-strong">
+            <Card className="bg-card/90 backdrop-blur-sm border-primary/20 shadow-strong pointer-events-auto">
               <CardHeader className="text-center space-y-2">
                 <CardTitle className="text-3xl font-bold">
                   Join <span className="bg-gradient-primary bg-clip-text text-transparent">Lab2Home</span>
@@ -771,8 +834,8 @@ const Signup = () => {
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float -z-10" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float-slow -z-10" />
       </section>
 
       <Footer />
