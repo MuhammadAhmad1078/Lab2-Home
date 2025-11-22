@@ -16,8 +16,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Squares from "@/components/home/Squares";
 import Footer from "@/components/shared/Footer";
 import CardNav from "@/components/home/CardNav";
-import { LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import logo from "/logo.svg";
 
 // Login schema
@@ -31,6 +33,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isNavExpanded, setIsNavExpanded] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const { login } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,8 +46,22 @@ export default function Login() {
   });
 
   const onSubmit = (data: LoginFormValues) => {
-    console.log("LOGIN:", data);
-    // API CALL → login with email and password
+    setLoginError("");
+    const success = login(data.email, data.password);
+    
+    if (!success) {
+      setLoginError("Invalid email or password. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Invalid email or password. Please check your credentials.",
+      });
+    } else {
+      toast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting to your dashboard...",
+      });
+    }
   };
 
   const navItems = [
@@ -190,6 +209,13 @@ export default function Login() {
                       )}
                     />
 
+                    {loginError && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{loginError}</span>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <input
@@ -222,6 +248,28 @@ export default function Login() {
                     </Button>
                   </form>
                 </Form>
+
+                {/* Demo Credentials */}
+                <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">Demo Credentials:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div>
+                      <span className="font-medium">Patient:</span> patient@lab2home.com
+                    </div>
+                    <div>
+                      <span className="font-medium">Lab:</span> lab@lab2home.com
+                    </div>
+                    <div>
+                      <span className="font-medium">Phlebotomist:</span> phlebotomist@lab2home.com
+                    </div>
+                    <div>
+                      <span className="font-medium">Admin:</span> admin@lab2home.com
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Password for all accounts: <span className="font-mono font-medium">patient123</span>, <span className="font-mono font-medium">lab123</span>, <span className="font-mono font-medium">phleb123</span>, <span className="font-mono font-medium">admin123</span>
+                  </p>
+                </div>
 
                 {/* Signup Link */}
                 <div className="mt-6 text-center">
