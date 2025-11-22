@@ -33,6 +33,14 @@ All colors MUST be HSL.
     --health-foreground: 0 0% 100%;
     --health-light: 150 65% 65%;
 
+    /* Success - Positive actions */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning - Attention needed */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
     --muted: 210 30% 94%;
     --muted-foreground: 210 15% 45%;
 
@@ -94,6 +102,12 @@ All colors MUST be HSL.
     --health: 150 65% 50%;
     --health-foreground: 210 40% 8%;
     --health-light: 150 60% 60%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 55%;
+    --warning-foreground: 0 0% 100%;
 
     --muted: 210 30% 15%;
     --muted-foreground: 210 15% 60%;
