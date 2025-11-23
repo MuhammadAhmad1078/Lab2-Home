@@ -3,6 +3,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   TestTube, 
   FileCheck, 
@@ -26,6 +27,8 @@ const recentReports = [
 ];
 
 const PatientDashboard = () => {
+  const { user } = useAuth();
+  
   return (
     <DashboardLayout role="patient">
       {/* Header */}
@@ -34,7 +37,7 @@ const PatientDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back, John!</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back, {user?.fullName?.split(' ')[0] || 'Patient'}!</h1>
         <p className="text-muted-foreground">Your health dashboard at a glance</p>
       </motion.div>
 

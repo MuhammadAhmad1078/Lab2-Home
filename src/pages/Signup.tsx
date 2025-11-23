@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { authAPI } from "@/lib/api";
 import {
   Form,
   FormControl,
@@ -592,6 +594,13 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
 
 // Form wrapper component that recreates form when role changes
 const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void }) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOTPDialog, setShowOTPDialog] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
+  const [otp, setOtp] = useState("");
+
   // Get the appropriate schema based on role
   const getSchema = (role: UserRole) => {
     const base = (schema: z.ZodObject<any>) => 
@@ -645,27 +654,190 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
     defaultValues: getDefaultValues(role),
   });
 
-  const onSubmit = (data: any) => {
-    console.log("Signup data:", data);
-    // Handle signup logic here based on role
+  const onSubmit = async (data: any) => {
+    try {
+      setIsLoading(true);
+      console.log("🚀 Starting signup with data:", data);
+
+      // Call appropriate API based on role
+      let response;
+      if (role === "patient") {
+        console.log("📞 Calling patient signup API...");
+        response = await authAPI.signupPatient({
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          dateOfBirth: data.dateOfBirth,
+          address: data.address,
+          password: data.password,
+        });
+        console.log("✅ Patient signup response:", response);
+      } else if (role === "lab") {
+        console.log("📞 Calling lab signup API...");
+        response = await authAPI.signupLab({
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          labName: data.labName,
+          licenseNumber: data.licenseNumber,
+          labAddress: data.labAddress,
+          password: data.password,
+        });
+        console.log("✅ Lab signup response:", response);
+      } else if (role === "phlebotomist") {
+        console.log("📞 Calling phlebotomist signup API...");
+        response = await authAPI.signupPhlebotomist({
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          qualification: data.qualification,
+          password: data.password,
+          trafficLicenseCopy: data.trafficLicenseCopy,
+        });
+        console.log("✅ Phlebotomist signup response:", response);
+      }
+
+      if (response && response.success) {
+        setSignupEmail(data.email);
+        toast({
+          title: "Success!",
+          description: "OTP sent to your email. Please check your inbox.",
+        });
+        // Show OTP dialog
+        setShowOTPDialog(true);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Signup Failed",
+          description: response?.message || "Please try again.",
+        });
+      }
+    } catch (error: any) {
+      console.error("❌ Signup error details:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+        errorMessage = "Cannot connect to server. Make sure backend is running on port 5000.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await authAPI.verifyOTP(signupEmail, otp, role);
+
+      if (response.success && response.data) {
+        // Save token
+        localStorage.setItem('lab2home_token', response.data.token);
+        
+        toast({
+          title: "Email Verified!",
+          description: "Your account has been created successfully.",
+        });
+        
+        // Navigate to appropriate dashboard
+        navigate(`/${role}`);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: response.message || "Invalid OTP. Please try again.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to verify OTP. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <>
-      <Button
-        variant="ghost"
-        onClick={onBack}
-        className="mb-4 -ml-2"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Change Role
-      </Button>
+      {!showOTPDialog ? (
+        <>
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="mb-4 -ml-2"
+            disabled={isLoading}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Change Role
+          </Button>
 
-      <Form {...form}>
-        {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} />}
-        {role === "lab" && <LabForm form={form} onSubmit={onSubmit} />}
-        {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} />}
-      </Form>
+          <Form {...form}>
+            {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} />}
+            {role === "lab" && <LabForm form={form} onSubmit={onSubmit} />}
+            {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} />}
+          </Form>
+        </>
+      ) : (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-xl font-semibold mb-2">Verify Your Email</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              We've sent a 6-digit OTP to <strong>{signupEmail}</strong>
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Enter OTP</label>
+              <Input
+                type="text"
+                placeholder="123456"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                className="text-center text-2xl tracking-widest"
+              />
+            </div>
+
+            <Button
+              onClick={handleVerifyOTP}
+              disabled={isLoading || otp.length !== 6}
+              className="w-full"
+              size="lg"
+            >
+              {isLoading ? "Verifying..." : "Verify & Continue"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={() => {
+                authAPI.resendOTP(signupEmail, role);
+                toast({
+                  title: "OTP Resent",
+                  description: "Please check your email.",
+                });
+              }}
+              disabled={isLoading}
+              className="w-full"
+            >
+              Resend OTP
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

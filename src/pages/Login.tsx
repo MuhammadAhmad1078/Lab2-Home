@@ -45,9 +45,10 @@ export default function Login() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues) => {
     setLoginError("");
-    const success = login(data.email, data.password);
+    
+    const success = await login(data.email, data.password);
     
     if (!success) {
       setLoginError("Invalid email or password. Please try again.");
