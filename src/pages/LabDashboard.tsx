@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Calendar,
   FileUp,
@@ -29,6 +30,8 @@ const todayAppointments = [
 ];
 
 const LabDashboard = () => {
+  const { user } = useAuth();
+  
   return (
     <DashboardLayout role="lab">
       <motion.div
@@ -36,7 +39,7 @@ const LabDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-foreground mb-2">Laboratory Dashboard</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">{user?.labName || 'Laboratory'} Dashboard</h1>
         <p className="text-muted-foreground">Manage tests, reports, and appointments</p>
       </motion.div>
 

@@ -1,0 +1,36 @@
+import { Router } from 'express';
+import {
+  patientSignup,
+  labSignup,
+  phlebotomistSignup,
+  verifyOTP,
+  resendOTP,
+  patientLogin,
+  labLogin,
+  unifiedLogin,
+  getMe,
+} from '../controllers/auth.controller';
+import { authenticateToken } from '../middleware/auth.middleware';
+import { upload } from '../middleware/upload.middleware';
+
+const router = Router();
+
+// Signup routes
+router.post('/signup/patient', patientSignup);
+router.post('/signup/lab', labSignup);
+router.post('/signup/phlebotomist', upload.single('trafficLicenseCopy'), phlebotomistSignup);
+
+// OTP verification
+router.post('/verify-otp', verifyOTP);
+router.post('/resend-otp', resendOTP);
+
+// Login routes
+router.post('/login', unifiedLogin); // NEW: Auto-detects patient or lab
+router.post('/login/patient', patientLogin); // Legacy support
+router.post('/login/lab', labLogin); // Legacy support
+
+// Get current user (protected route)
+router.get('/me', authenticateToken, getMe);
+
+export default router;
+
