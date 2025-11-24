@@ -196,11 +196,12 @@ export default function Login() {
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
                               >
                                 {showPassword ? (
-                                  <EyeOff className="w-4 h-4" />
-                                ) : (
                                   <Eye className="w-4 h-4" />
+                                ) : (
+                                  <EyeOff className="w-4 h-4" />
                                 )}
                               </button>
                             </div>
@@ -249,28 +250,6 @@ export default function Login() {
                     </Button>
                   </form>
                 </Form>
-
-                {/* Demo Credentials */}
-                <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
-                  <p className="text-xs font-semibold text-foreground mb-2">Demo Credentials:</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <div>
-                      <span className="font-medium">Patient:</span> patient@lab2home.com
-                    </div>
-                    <div>
-                      <span className="font-medium">Lab:</span> lab@lab2home.com
-                    </div>
-                    <div>
-                      <span className="font-medium">Phlebotomist:</span> phlebotomist@lab2home.com
-                    </div>
-                    <div>
-                      <span className="font-medium">Admin:</span> admin@lab2home.com
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Password for all accounts: <span className="font-mono font-medium">patient123</span>, <span className="font-mono font-medium">lab123</span>, <span className="font-mono font-medium">phleb123</span>, <span className="font-mono font-medium">admin123</span>
-                  </p>
-                </div>
 
                 {/* Signup Link */}
                 <div className="mt-6 text-center">
