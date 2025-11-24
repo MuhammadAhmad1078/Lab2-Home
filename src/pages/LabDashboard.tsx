@@ -3,7 +3,6 @@ import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -31,8 +30,11 @@ const todayAppointments = [
 ];
 
 const LabDashboard = () => {
-  const navigate = useNavigate();      // from feature branch
-  const { user } = useAuth();          // from main branch
+  const { user } = useAuth();
+  
+  console.log('🏥 LabDashboard rendered, user:', user);
+  console.log('👤 User role:', user?.role);
+  console.log('🎯 User type:', user?.userType);
 
   return (
     <DashboardLayout role="lab">
@@ -99,7 +101,7 @@ const LabDashboard = () => {
                 <h2 className="text-xl font-semibold text-foreground">Pending Report Uploads</h2>
                 <p className="text-sm text-muted-foreground">Tests awaiting results submission</p>
               </div>
-              <Button onClick={() => navigate("/lab/reports")}>
+              <Button>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Report
               </Button>
