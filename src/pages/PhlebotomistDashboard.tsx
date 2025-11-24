@@ -31,6 +31,10 @@ const completedToday = [
 const PhlebotomistDashboard = () => {
   const { user } = useAuth();
   
+  console.log('🏥 PhlebotomistDashboard rendered, user:', user);
+  console.log('👤 User role:', user?.role);
+  console.log('🎯 User type:', user?.userType);
+  
   return (
     <DashboardLayout role="phlebotomist">
       <motion.div

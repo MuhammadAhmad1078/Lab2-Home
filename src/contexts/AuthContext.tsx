@@ -34,9 +34,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("lab2home_token");
+      console.log('🔍 Checking auth on mount, token exists:', !!token);
+      
       if (token) {
         try {
           const response = await authAPI.getMe();
+          console.log('📥 getMe response:', response);
+          
           if (response.success && response.data) {
             const userData: User = {
               id: response.data.id,
@@ -48,13 +52,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               labName: response.data.labName,
               address: response.data.address,
             };
+            console.log('✅ Auth check passed, user:', userData);
             setUser(userData);
           } else {
+            console.log('❌ Auth check failed, removing token');
             removeToken();
+            localStorage.removeItem("lab2home_user");
           }
         } catch (error) {
-          console.error("Auth check failed:", error);
+          console.error("❌ Auth check failed:", error);
           removeToken();
+          localStorage.removeItem("lab2home_user");
         }
       }
       setLoading(false);
@@ -67,10 +75,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
+      // Clear any existing data first
+      removeToken();
+      localStorage.removeItem("lab2home_user");
+      setUser(null);
+      
+      console.log('🔐 Starting login process...');
+      
       // Call unified login endpoint - auto-detects patient or lab
       const response = await authAPI.login(email, password);
+      
+      console.log('📥 Login response:', response);
 
       if (response.success && response.data) {
+        console.log('✅ Login successful, user data:', response.data.user);
+        console.log('🎯 User type from backend:', response.data.user.userType);
+        
         // Save token
         setToken(response.data.token);
         
@@ -86,18 +106,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           address: response.data.user.address,
         };
         
+        console.log('💾 Saving user data:', userData);
+        console.log('🧭 Will navigate to:', `/${userData.userType}`);
+        
         setUser(userData);
         localStorage.setItem("lab2home_user", JSON.stringify(userData));
         
         // Navigate based on user type
-        navigate(`/${userData.userType}`);
+        const path = `/${userData.userType}`;
+        console.log('🚀 Navigating to:', path);
+        navigate(path, { replace: true });
         
         return true;
       }
       
       return false;
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
       return false;
     } finally {
       setLoading(false);
