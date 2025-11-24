@@ -3,6 +3,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -30,8 +31,9 @@ const todayAppointments = [
 ];
 
 const LabDashboard = () => {
-  const { user } = useAuth();
-  
+  const navigate = useNavigate();      // from feature branch
+  const { user } = useAuth();          // from main branch
+
   return (
     <DashboardLayout role="lab">
       <motion.div
@@ -39,7 +41,9 @@ const LabDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-foreground mb-2">{user?.labName || 'Laboratory'} Dashboard</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">
+          {user?.labName || "Laboratory"} Dashboard
+        </h1>
         <p className="text-muted-foreground">Manage tests, reports, and appointments</p>
       </motion.div>
 
@@ -95,11 +99,12 @@ const LabDashboard = () => {
                 <h2 className="text-xl font-semibold text-foreground">Pending Report Uploads</h2>
                 <p className="text-sm text-muted-foreground">Tests awaiting results submission</p>
               </div>
-              <Button>
+              <Button onClick={() => navigate("/lab/reports")}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Report
               </Button>
             </div>
+
             <div className="space-y-4">
               {pendingReports.map((report, index) => (
                 <motion.div
@@ -107,7 +112,7 @@ const LabDashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
@@ -143,6 +148,7 @@ const LabDashboard = () => {
         >
           <Card className="border-border bg-card p-6 shadow-soft">
             <h3 className="mb-4 font-semibold text-foreground">Today's Overview</h3>
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -151,6 +157,7 @@ const LabDashboard = () => {
                 </div>
                 <span className="font-semibold text-foreground">8</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-warning" />
@@ -158,6 +165,7 @@ const LabDashboard = () => {
                 </div>
                 <span className="font-semibold text-foreground">2</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
@@ -165,6 +173,7 @@ const LabDashboard = () => {
                 </div>
                 <span className="font-semibold text-foreground">4</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 text-destructive" />
@@ -177,13 +186,14 @@ const LabDashboard = () => {
 
           <Card className="border-border bg-card p-6 shadow-soft">
             <h3 className="mb-4 font-semibold text-foreground">Performance</h3>
+
             <div className="space-y-3">
               <div>
                 <div className="mb-2 flex justify-between text-sm">
                   <span className="text-muted-foreground">Report Turnaround</span>
                   <span className="font-medium text-foreground">4.2h avg</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-muted">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "85%" }}
@@ -192,12 +202,13 @@ const LabDashboard = () => {
                   />
                 </div>
               </div>
+
               <div>
                 <div className="mb-2 flex justify-between text-sm">
                   <span className="text-muted-foreground">Quality Score</span>
                   <span className="font-medium text-foreground">96%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-muted">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "96%" }}
@@ -223,6 +234,7 @@ const LabDashboard = () => {
             <h2 className="text-xl font-semibold text-foreground">Today's Appointments</h2>
             <p className="text-sm text-muted-foreground">Scheduled sample collections and tests</p>
           </div>
+
           <div className="grid gap-3 md:grid-cols-2">
             {todayAppointments.map((apt, index) => (
               <motion.div
@@ -230,7 +242,7 @@ const LabDashboard = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.7 + index * 0.05 }}
-                className="flex items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:shadow-soft"
+                className="flex items-center justify-between rounded-lg border border-border bg-background p-4 hover:shadow-soft"
               >
                 <div>
                   <p className="font-medium text-foreground">{apt.patient}</p>
@@ -259,4 +271,3 @@ const LabDashboard = () => {
 };
 
 export default LabDashboard;
-
