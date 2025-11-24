@@ -3,6 +3,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { 
   TestTube, 
   FileCheck, 
@@ -15,8 +16,8 @@ import {
 } from "lucide-react";
 
 const upcomingTests = [
-  { id: 1, name: "Complete Blood Count", date: "Dec 25, 2025", time: "10:00 AM", status: "Scheduled" },
-  { id: 2, name: "Lipid Panel", date: "Dec 27, 2025", time: "9:00 AM", status: "Pending" },
+  { id: 1, name: "Complete Blood Count", date: "Dec 25, 2025", time: "10:00 AM", status: "Sample Collected" },
+  { id: 2, name: "Lipid Panel", date: "Dec 27, 2025", time: "9:00 AM", status: "In Process" },
 ];
 
 const recentReports = [
@@ -26,6 +27,7 @@ const recentReports = [
 ];
 
 const PatientDashboard = () => {
+  const navigate = useNavigate();
   return (
     <DashboardLayout role="patient">
       {/* Header */}
@@ -86,7 +88,7 @@ const PatientDashboard = () => {
                 <h2 className="text-xl font-semibold text-foreground">Upcoming Tests</h2>
                 <p className="text-sm text-muted-foreground">Your scheduled appointments</p>
               </div>
-              <Button>
+              <Button onClick={() => navigate("/patient/book-test")}> 
                 <TestTube className="mr-2 h-4 w-4" />
                 Book New Test
               </Button>
@@ -99,9 +101,9 @@ const PatientDashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50"
+                  className="rounded-lg border border-border bg-muted/30 p-4 mb-2 transition-all hover:bg-muted/50"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mb-2">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <TestTube className="h-6 w-6" />
                     </div>
@@ -113,14 +115,32 @@ const PatientDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    {test.status}
-                  </span>
+                  {/* Status Timeline */}
+                  <div className="flex items-center gap-4 mt-2">
+                    {['Sample Collected', 'In Process', 'Ready', 'Delivered'].map((step, idx) => {
+                      const isActive = step === test.status;
+                      const isCompleted = ['Sample Collected', 'In Process', 'Ready', 'Delivered'].indexOf(test.status) > idx;
+                      return (
+                        <div key={step} className="flex items-center">
+                          <div className={`w-6 h-6 flex items-center justify-center rounded-full border-2 ${isActive ? 'border-primary bg-primary text-white' : isCompleted ? 'border-green-400 bg-green-400 text-white' : 'border-muted bg-muted text-muted-foreground'}`}>
+                            {isCompleted ? <CheckCircle className="w-4 h-4" /> : idx + 1}
+                          </div>
+                          {idx < 3 && <div className="w-8 h-1 bg-muted mx-1" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      {test.status}
+                    </span>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </Card>
         </motion.div>
+
 
         {/* Health Insights */}
         <motion.div

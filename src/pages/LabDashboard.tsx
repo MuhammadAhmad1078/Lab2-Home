@@ -3,6 +3,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { 
   Calendar,
@@ -29,6 +30,7 @@ const todayAppointments = [
 ];
 
 const LabDashboard = () => {
+  const navigate = useNavigate();
   return (
     <DashboardLayout role="lab">
       <motion.div
@@ -92,7 +94,7 @@ const LabDashboard = () => {
                 <h2 className="text-xl font-semibold text-foreground">Pending Report Uploads</h2>
                 <p className="text-sm text-muted-foreground">Tests awaiting results submission</p>
               </div>
-              <Button>
+              <Button onClick={() => navigate("/lab/reports")}> 
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Report
               </Button>
