@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,10 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
+
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+
 import PatientDashboard from "./pages/PatientDashboard";
 import LabDashboard from "./pages/LabDashboard";
 import PhlebotomistDashboard from "./pages/PhlebotomistDashboard";
@@ -20,23 +21,23 @@ import LabMessages from "./pages/LabMessages";
 import PhlebotomistMessages from "./pages/PhlebotomistMessages";
 import LabAppointments from "./pages/LabAppointments";
 import LabUploadReport from "./pages/LabUploadReport";
-
 const queryClient = new QueryClient();
-
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            {/* PUBLIC ROUTES */}
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
 
-            {/* Protected Dashboard Routes */}
+            {/* PATIENT ROUTES */}
             <Route
               path="/patient"
               element={
@@ -53,6 +54,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/patient/book-test" element={<BookTest />} />
+
+            {/* LAB ROUTES */}
             <Route
               path="/lab"
               element={
@@ -85,6 +89,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+
+            {/* PHLEBOTOMIST ROUTES */}
             <Route
               path="/phlebotomist"
               element={
@@ -101,9 +107,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/patient/book-test" element={<BookTest />} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* 404 CATCH-ALL */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
