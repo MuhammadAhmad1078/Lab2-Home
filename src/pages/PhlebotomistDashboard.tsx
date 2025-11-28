@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   MapPin,
   Calendar,
@@ -28,6 +29,8 @@ const completedToday = [
 ];
 
 const PhlebotomistDashboard = () => {
+  const { user } = useAuth();
+  
   return (
     <DashboardLayout role="phlebotomist">
       <motion.div
@@ -35,7 +38,7 @@ const PhlebotomistDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-foreground mb-2">Good Morning, Alex!</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">Good Morning, {user?.fullName?.split(' ')[0] || 'Phlebotomist'}!</h1>
         <p className="text-muted-foreground">Ready for today's sample collections</p>
       </motion.div>
 
