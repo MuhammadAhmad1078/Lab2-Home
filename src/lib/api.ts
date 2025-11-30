@@ -30,32 +30,32 @@ const apiRequest = async <T = any>(
 ): Promise<ApiResponse<T>> => {
   const token = getToken();
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
-  
+
   // Add Authorization header if token exists
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   try {
     console.log('📤 Request options:', { url, method: options.method, body: options.body });
-    
+
     const response = await fetch(url, {
       ...options,
       headers,
     });
-    
+
     console.log('📥 Response status:', response.status);
-    
+
     const data = await response.json();
     console.log('📦 Response data:', data);
-    
+
     return data;
   } catch (error) {
     console.error('❌ API Request Error:', error);
@@ -73,7 +73,7 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
   },
-  
+
   // Patient login (legacy)
   loginPatient: async (email: string, password: string) => {
     return apiRequest('/auth/login/patient', {
@@ -81,7 +81,7 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
   },
-  
+
   // Lab login (legacy)
   loginLab: async (email: string, password: string) => {
     return apiRequest('/auth/login/lab', {
@@ -89,14 +89,14 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
   },
-  
+
   // Get current user
   getMe: async () => {
     return apiRequest('/auth/me', {
       method: 'GET',
     });
   },
-  
+
   // Patient signup
   signupPatient: async (data: {
     fullName: string;
@@ -111,7 +111,7 @@ export const authAPI = {
       body: JSON.stringify(data),
     });
   },
-  
+
   // Lab signup
   signupLab: async (data: {
     fullName: string;
@@ -127,7 +127,7 @@ export const authAPI = {
       body: JSON.stringify(data),
     });
   },
-  
+
   // Verify OTP
   verifyOTP: async (email: string, otp: string, userType: 'patient' | 'lab' | 'phlebotomist') => {
     return apiRequest('/auth/verify-otp', {
@@ -135,7 +135,7 @@ export const authAPI = {
       body: JSON.stringify({ email, otp, userType }),
     });
   },
-  
+
   // Resend OTP
   resendOTP: async (email: string, userType: 'patient' | 'lab' | 'phlebotomist') => {
     return apiRequest('/auth/resend-otp', {
@@ -143,7 +143,7 @@ export const authAPI = {
       body: JSON.stringify({ email, userType }),
     });
   },
-  
+
   // Phlebotomist signup (with file upload)
   signupPhlebotomist: async (data: {
     fullName: string;
@@ -161,21 +161,45 @@ export const authAPI = {
     formData.append('qualification', data.qualification);
     formData.append('password', data.password);
     formData.append('trafficLicenseCopy', data.trafficLicenseCopy);
-    
+
     // Don't use apiRequest for file uploads - fetch directly
     const token = localStorage.getItem('lab2home_token');
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     const response = await fetch('http://localhost:5000/api/auth/signup/phlebotomist', {
       method: 'POST',
       headers,
       body: formData, // Don't set Content-Type - browser will set it with boundary
     });
-    
+
     return await response.json();
+  },
+
+  // Forgot password - request OTP
+  forgotPassword: async (email: string) => {
+    return apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  // Verify reset OTP
+  verifyResetOTP: async (email: string, otp: string) => {
+    return apiRequest('/auth/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  // Reset password
+  resetPassword: async (email: string, otp: string, newPassword: string) => {
+    return apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
   },
 };
 

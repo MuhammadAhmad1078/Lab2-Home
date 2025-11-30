@@ -9,6 +9,9 @@ import {
   labLogin,
   unifiedLogin,
   getMe,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword,
 } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -28,6 +31,11 @@ router.post('/resend-otp', resendOTP);
 router.post('/login', unifiedLogin); // NEW: Auto-detects patient or lab
 router.post('/login/patient', patientLogin); // Legacy support
 router.post('/login/lab', labLogin); // Legacy support
+
+// Forgot password routes
+router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-otp', verifyResetOTP);
+router.post('/reset-password', resetPassword);
 
 // Get current user (protected route)
 router.get('/me', authenticateToken, getMe);

@@ -15,7 +15,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     // Get token from header
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-    
+
     if (!token) {
       res.status(401).json({
         success: false,
@@ -23,11 +23,11 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       });
       return;
     }
-    
+
     // Verify token
     const decoded = verifyToken(token);
     req.user = decoded;
-    
+
     next();
   } catch (error) {
     res.status(403).json({
@@ -47,7 +47,7 @@ export const authorizeUserType = (...userTypes: ('patient' | 'lab' | 'phlebotomi
       });
       return;
     }
-    
+
     if (!userTypes.includes(req.user.userType)) {
       res.status(403).json({
         success: false,
@@ -55,7 +55,10 @@ export const authorizeUserType = (...userTypes: ('patient' | 'lab' | 'phlebotomi
       });
       return;
     }
-    
+
     next();
   };
 };
+
+// Alias for authenticateToken (commonly used as 'protect' in routes)
+export const protect = authenticateToken;

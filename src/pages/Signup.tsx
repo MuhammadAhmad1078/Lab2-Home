@@ -20,29 +20,66 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Squares from "@/components/home/Squares";
 import Footer from "@/components/shared/Footer";
 import CardNav from "@/components/home/CardNav";
-import { 
-  UserPlus, Mail, Lock, User, Phone, Calendar, 
-  FlaskConical, ArrowLeft, Building2,
-  GraduationCap, MapPin, FileText, Bike
+import {
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Calendar,
+  FlaskConical,
+  ArrowLeft,
+  Building2,
+  GraduationCap,
+  MapPin,
+  FileText,
+  Bike,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import logo from "/logo.svg";
 
 // Role types
 type UserRole = "patient" | "lab" | "phlebotomist";
 
+// -------------------- ZOD SCHEMAS --------------------
+
 // Base schema for all roles
 const baseSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Please confirm your password"),
+  phone: z
+    .string()
+    .min(11, "Phone number must be at least 11 digits")
+    .max(14, "Phone number seems invalid")
+    .regex(
+      /^(?:\+92|0092|0)3[0-9]{9}$/,
+      "Please enter a valid Pakistani phone number (e.g., 03XXXXXXXXX or +923XXXXXXXXX)"
+    ),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(
+      /[!@#$%^&*(),.?":{}|<>]/,
+      "Password must contain at least one special character"
+    ),
+  confirmPassword: z.string(),
 });
 
 // Patient-specific schema
 const patientSchema = baseSchema.extend({
   role: z.literal("patient"),
-  dateOfBirth: z.string().min(1, "Please select your date of birth"),
+  dateOfBirth: z
+    .string()
+    .min(1, "Please select your date of birth")
+    .refine((date) => {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+      return selectedDate <= today;
+    }, "Date of birth cannot be in the future"),
   address: z.string().min(5, "Please enter your address"),
 });
 
@@ -50,7 +87,10 @@ const patientSchema = baseSchema.extend({
 const labSchema = baseSchema.extend({
   role: z.literal("lab"),
   labName: z.string().min(2, "Please enter lab name"),
-  licenseNumber: z.string().min(5, "Please enter your lab license number"),
+  licenseNumber: z
+    .string()
+    .min(5, "Please enter your lab license number")
+    .regex(/^[A-Za-z0-9\-]+$/, "License number must be alphanumeric"),
   labAddress: z.string().min(5, "Please enter lab address"),
 });
 
@@ -58,27 +98,28 @@ const labSchema = baseSchema.extend({
 const phlebotomistSchema = baseSchema.extend({
   role: z.literal("phlebotomist"),
   qualification: z.string().min(2, "Please enter your qualification"),
-  trafficLicenseCopy: z.instanceof(File, { message: "Please upload your traffic license copy" })
+  trafficLicenseCopy: z
+    .instanceof(File, { message: "Please upload your traffic license copy" })
     .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
     .refine(
-      (file) => ["image/jpeg", "image/jpg", "image/png", "application/pdf"].includes(file.type),
+      (file) =>
+        ["image/jpeg", "image/jpg", "image/png", "application/pdf"].includes(file.type),
       "File must be an image (JPEG, PNG) or PDF"
     ),
 });
 
 // Combined schema with refinement
-const signupSchema = z.discriminatedUnion("role", [
-  patientSchema,
-  labSchema,
-  phlebotomistSchema,
-]).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const signupSchema = z
+  .discriminatedUnion("role", [patientSchema, labSchema, phlebotomistSchema])
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-// Role selection component
+// -------------------- ROLE SELECTION --------------------
+
 const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => void }) => {
   const roles = [
     {
@@ -111,9 +152,11 @@ const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => voi
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h3 className="text-xl font-semibold mb-2">Select Your Role</h3>
-        <p className="text-sm text-muted-foreground">Choose the account type that best describes you</p>
+        <p className="text-sm text-muted-foreground">
+          Choose the account type that best describes you
+        </p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {roles.map((role) => {
           const Icon = role.icon;
@@ -142,295 +185,17 @@ const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => voi
   );
 };
 
-// Patient form component
-const PatientForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any) => void }) => (
-  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-    <FormField
-      control={form.control}
-      name="fullName"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <User className="w-4 h-4 text-primary" />
-            Full Name
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="John Doe" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+// -------------------- PATIENT FORM --------------------
 
-    <FormField
-      control={form.control}
-      name="email"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-primary" />
-            Email Address
-          </FormLabel>
-          <FormControl>
-            <Input type="email" placeholder="john@example.com" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="phone"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-primary" />
-            Phone Number
-          </FormLabel>
-          <FormControl>
-            <Input type="tel" placeholder="+92 XXX XXXXXXX" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="dateOfBirth"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" />
-            Date of Birth
-          </FormLabel>
-          <FormControl>
-            <Input type="date" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="address"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Address
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="Your complete address" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="password"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-primary" />
-            Password
-          </FormLabel>
-          <FormControl>
-            <Input type="password" placeholder="••••••••" className="h-11" {...field} />
-          </FormControl>
-          <FormDescription className="text-xs">Must be at least 8 characters</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="confirmPassword"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-primary" />
-            Confirm Password
-          </FormLabel>
-          <FormControl>
-            <Input type="password" placeholder="••••••••" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <Button
-      type="submit"
-      size="lg"
-      className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
-    >
-      <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-      Create Patient Account
-    </Button>
-  </form>
-);
-
-
-// Lab form component
-const LabForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any) => void }) => (
-  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-    <FormField
-      control={form.control}
-      name="fullName"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <User className="w-4 h-4 text-primary" />
-            Contact Person Name
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="John Doe" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="email"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-primary" />
-            Email Address
-          </FormLabel>
-          <FormControl>
-            <Input type="email" placeholder="lab@example.com" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="phone"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-primary" />
-            Phone Number
-          </FormLabel>
-          <FormControl>
-            <Input type="tel" placeholder="+92 XXX XXXXXXX" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="labName"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-primary" />
-            Lab Name
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="ABC Diagnostic Lab" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="licenseNumber"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-primary" />
-            Lab License Number
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="LAB-XXXXX" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="labAddress"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Lab Address
-          </FormLabel>
-          <FormControl>
-            <Input placeholder="Lab's complete address" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="password"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-primary" />
-            Password
-          </FormLabel>
-          <FormControl>
-            <Input type="password" placeholder="••••••••" className="h-11" {...field} />
-          </FormControl>
-          <FormDescription className="text-xs">Must be at least 8 characters</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <FormField
-      control={form.control}
-      name="confirmPassword"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-primary" />
-            Confirm Password
-          </FormLabel>
-          <FormControl>
-            <Input type="password" placeholder="••••••••" className="h-11" {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-
-    <Button
-      type="submit"
-      size="lg"
-      className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
-    >
-      <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-      Create Lab Account
-    </Button>
-  </form>
-);
-
-// Phlebotomist form component
-const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any) => void }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const PatientForm = ({
+  form,
+  onSubmit,
+}: {
+  form: any;
+  onSubmit: (data: SignupFormValues) => void;
+}) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -461,7 +226,7 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
               Email Address
             </FormLabel>
             <FormControl>
-              <Input type="email" placeholder="phlebotomist@example.com" className="h-11" {...field} />
+              <Input type="email" placeholder="john@example.com" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -478,7 +243,394 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
               Phone Number
             </FormLabel>
             <FormControl>
-              <Input type="tel" placeholder="+92 XXX XXXXXXX" className="h-11" {...field} />
+              <Input type="tel" placeholder="03XXXXXXXXX" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="dateOfBirth"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              Date of Birth
+            </FormLabel>
+            <FormControl>
+              <Input type="date" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="address"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Address
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="Your complete address" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Password */}
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              Password
+            </FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
+            </FormControl>
+            <FormDescription className="text-xs">
+              At least 8 characters with an uppercase letter, number & special character
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Confirm Password */}
+      <FormField
+        control={form.control}
+        name="confirmPassword"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              Confirm Password
+            </FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showConfirmPassword ? (
+                    <Eye className="w-5 h-5" />
+                  ) : (
+                    <EyeOff className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
+      >
+        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+        Create Patient Account
+      </Button>
+    </form>
+  );
+};
+
+// -------------------- LAB FORM --------------------
+
+const LabForm = ({
+  form,
+  onSubmit,
+}: {
+  form: any;
+  onSubmit: (data: SignupFormValues) => void;
+}) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <FormField
+        control={form.control}
+        name="fullName"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
+              Contact Person Name
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="John Doe" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" />
+              Email Address
+            </FormLabel>
+            <FormControl>
+              <Input type="email" placeholder="lab@example.com" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="phone"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
+              Phone Number
+            </FormLabel>
+            <FormControl>
+              <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="labName"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              Lab Name
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="ABC Diagnostic Lab" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="licenseNumber"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-primary" />
+              Lab License Number
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="LAB-XXXXX" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="labAddress"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Lab Address
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="Lab's complete address" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Password */}
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              Password
+            </FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
+            </FormControl>
+            <FormDescription className="text-xs">
+              At least 8 characters with an uppercase letter, number & special character
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Confirm Password */}
+      <FormField
+        control={form.control}
+        name="confirmPassword"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              Confirm Password
+            </FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showConfirmPassword ? (
+                    <Eye className="w-5 h-5" />
+                  ) : (
+                    <EyeOff className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
+      >
+        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+        Create Lab Account
+      </Button>
+    </form>
+  );
+};
+
+// -------------------- PHLEBOTOMIST FORM --------------------
+
+const PhlebotomistForm = ({
+  form,
+  onSubmit,
+}: {
+  form: any;
+  onSubmit: (data: SignupFormValues) => void;
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <FormField
+        control={form.control}
+        name="fullName"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
+              Full Name
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="John Doe" className="h-11" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" />
+              Email Address
+            </FormLabel>
+            <FormControl>
+              <Input
+                type="email"
+                placeholder="phlebotomist@example.com"
+                className="h-11"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="phone"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
+              Phone Number
+            </FormLabel>
+            <FormControl>
+              <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -495,9 +647,15 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
               Qualification
             </FormLabel>
             <FormControl>
-              <Input placeholder="Certified Phlebotomist, Medical Lab Technician, etc." className="h-11" {...field} />
+              <Input
+                placeholder="Certified Phlebotomist, Medical Lab Technician, etc."
+                className="h-11"
+                {...field}
+              />
             </FormControl>
-            <FormDescription className="text-xs">Enter your professional qualification or certification</FormDescription>
+            <FormDescription className="text-xs">
+              Enter your professional qualification or certification
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -526,13 +684,16 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
                         onChange(file);
                       }
                     }}
+                    {...field}
                   />
                 </div>
                 {selectedFile && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
                     <FileText className="w-4 h-4" />
                     <span className="flex-1 truncate">{selectedFile.name}</span>
-                    <span className="text-xs">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <span className="text-xs">
+                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
                   </div>
                 )}
               </div>
@@ -545,6 +706,7 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
         )}
       />
 
+      {/* Password */}
       <FormField
         control={form.control}
         name="password"
@@ -555,14 +717,31 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
               Password
             </FormLabel>
             <FormControl>
-              <Input type="password" placeholder="••••••••" className="h-11" {...field} />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
             </FormControl>
-            <FormDescription className="text-xs">Must be at least 8 characters</FormDescription>
+            <FormDescription className="text-xs">
+              At least 8 characters with an uppercase letter, number & special character
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
 
+      {/* Confirm Password */}
       <FormField
         control={form.control}
         name="confirmPassword"
@@ -573,7 +752,25 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
               Confirm Password
             </FormLabel>
             <FormControl>
-              <Input type="password" placeholder="••••••••" className="h-11" {...field} />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 pr-10"
+                  {...field}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showConfirmPassword ? (
+                    <Eye className="w-5 h-5" />
+                  ) : (
+                    <EyeOff className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -592,7 +789,8 @@ const PhlebotomistForm = ({ form, onSubmit }: { form: any; onSubmit: (data: any)
   );
 };
 
-// Form wrapper component that recreates form when role changes
+// -------------------- ROLE-BASED FORM WRAPPER --------------------
+
 const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -603,19 +801,19 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
 
   // Get the appropriate schema based on role
   const getSchema = (role: UserRole) => {
-    const base = (schema: z.ZodObject<any>) => 
+    const baseRefine = (schema: z.ZodObject<any>) =>
       schema.refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
+        message: "Passwords do not match",
         path: ["confirmPassword"],
       });
 
     switch (role) {
       case "patient":
-        return base(patientSchema);
+        return baseRefine(patientSchema);
       case "lab":
-        return base(labSchema);
+        return baseRefine(labSchema);
       case "phlebotomist":
-        return base(phlebotomistSchema);
+        return baseRefine(phlebotomistSchema);
     }
   };
 
@@ -654,7 +852,7 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
     defaultValues: getDefaultValues(role),
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: SignupFormValues) => {
     try {
       setIsLoading(true);
       console.log("🚀 Starting signup with data:", data);
@@ -667,8 +865,8 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           fullName: data.fullName,
           email: data.email,
           phone: data.phone,
-          dateOfBirth: data.dateOfBirth,
-          address: data.address,
+          dateOfBirth: (data as any).dateOfBirth,
+          address: (data as any).address,
           password: data.password,
         });
         console.log("✅ Patient signup response:", response);
@@ -678,9 +876,9 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           fullName: data.fullName,
           email: data.email,
           phone: data.phone,
-          labName: data.labName,
-          licenseNumber: data.licenseNumber,
-          labAddress: data.labAddress,
+          labName: (data as any).labName,
+          licenseNumber: (data as any).licenseNumber,
+          labAddress: (data as any).labAddress,
           password: data.password,
         });
         console.log("✅ Lab signup response:", response);
@@ -690,9 +888,9 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           fullName: data.fullName,
           email: data.email,
           phone: data.phone,
-          qualification: data.qualification,
+          qualification: (data as any).qualification,
           password: data.password,
-          trafficLicenseCopy: data.trafficLicenseCopy,
+          trafficLicenseCopy: (data as any).trafficLicenseCopy,
         });
         console.log("✅ Phlebotomist signup response:", response);
       }
@@ -716,15 +914,18 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
       console.error("❌ Signup error details:", error);
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);
-      
+
       let errorMessage = "Something went wrong. Please try again.";
-      
-      if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+
+      if (
+        error.message?.includes("Failed to fetch") ||
+        error.message?.includes("NetworkError")
+      ) {
         errorMessage = "Cannot connect to server. Make sure backend is running on port 5000.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         variant: "destructive",
         title: "Error",
@@ -738,18 +939,18 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
   const handleVerifyOTP = async () => {
     try {
       setIsLoading(true);
-      
+
       const response = await authAPI.verifyOTP(signupEmail, otp, role);
 
       if (response.success && response.data) {
         // Save token
-        localStorage.setItem('lab2home_token', response.data.token);
-        
+        localStorage.setItem("lab2home_token", response.data.token);
+
         toast({
           title: "Email Verified!",
           description: "Your account has been created successfully.",
         });
-        
+
         // Navigate to appropriate dashboard
         navigate(`/${role}`);
       } else {
@@ -842,6 +1043,8 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
   );
 };
 
+// -------------------- MAIN SIGNUP PAGE --------------------
+
 const Signup = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isNavExpanded, setIsNavExpanded] = useState(false);
@@ -873,8 +1076,8 @@ const Signup = () => {
       links: [
         { label: "Diagnostic Tests", href: "/", ariaLabel: "View diagnostic tests" },
         { label: "Home Collection", href: "/", ariaLabel: "Home sample collection" },
-        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" }
-      ]
+        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" },
+      ],
     },
     {
       label: "About",
@@ -882,8 +1085,8 @@ const Signup = () => {
       textColor: "#fff",
       links: [
         { label: "How It Works", href: "/", ariaLabel: "Learn how it works" },
-        { label: "Our Team", href: "/", ariaLabel: "Meet our team" }
-      ]
+        { label: "Our Team", href: "/", ariaLabel: "Meet our team" },
+      ],
     },
     {
       label: "Contact",
@@ -891,9 +1094,9 @@ const Signup = () => {
       textColor: "#fff",
       links: [
         { label: "Support", href: "/", ariaLabel: "Contact support" },
-        { label: "Book Test", href: "/login", ariaLabel: "Sign in to book" }
-      ]
-    }
+        { label: "Book Test", href: "/login", ariaLabel: "Sign in to book" },
+      ],
+    },
   ];
 
   return (
@@ -905,38 +1108,40 @@ const Signup = () => {
           items={navItems}
           baseColor="#fff"
           menuColor="hsl(200 85% 45%)"
-          buttonLink="/login"
           onExpandChange={setIsNavExpanded}
         />
         <Squares speed={0.5} squareSize={40} direction="diagonal" />
-        
-        {/* Animated Title - Shows when navbar is closed, hides when nav cards appear */}
-        <div 
-          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${
-            isNavExpanded ? 'opacity-0 scale-95 -translate-y-8 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
-          }`}
+
+        {/* Animated Title */}
+        <div
+          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${isNavExpanded
+            ? "opacity-0 scale-95 -translate-y-8 pointer-events-none"
+            : "opacity-100 scale-100 translate-y-0"
+            }`}
         >
           <div className="animate-fade-in-up">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight">
               Join{" "}
               <span className="bg-gradient-primary bg-clip-text text-transparent">
                 Lab2Home
-              </span>
-              {" "}Today
+              </span>{" "}
+              Today
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground animate-pulse">
               Healthcare at Your Doorstep
             </p>
           </div>
         </div>
-        
+
         <div className="relative z-10 container mx-auto px-4 w-full max-w-2xl pointer-events-none pt-96 md:pt-72">
           <div className="animate-fade-in-up">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-primary/20 shadow-soft mb-6 mx-auto w-fit">
               <UserPlus className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-foreground">
-                {selectedRole ? `Create ${getRoleTitle(selectedRole)} Account` : "Create Your Account"}
+                {selectedRole
+                  ? `Create ${getRoleTitle(selectedRole)} Account`
+                  : "Create Your Account"}
               </span>
             </div>
 
@@ -944,7 +1149,10 @@ const Signup = () => {
             <Card className="bg-card/90 backdrop-blur-sm border-primary/20 shadow-strong pointer-events-auto">
               <CardHeader className="text-center space-y-2">
                 <CardTitle className="text-3xl font-bold">
-                  Join <span className="bg-gradient-primary bg-clip-text text-transparent">Lab2Home</span>
+                  Join{" "}
+                  <span className="bg-gradient-primary bg-clip-text text-transparent">
+                    Lab2Home
+                  </span>
                 </CardTitle>
                 <CardDescription className="text-base">
                   {selectedRole
@@ -952,12 +1160,16 @@ const Signup = () => {
                     : "Start your journey to better health at home"}
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 {!selectedRole ? (
                   <RoleSelection onSelectRole={handleRoleSelect} />
                 ) : (
-                  <RoleBasedForm key={selectedRole} role={selectedRole} onBack={handleBackToRoleSelection} />
+                  <RoleBasedForm
+                    key={selectedRole}
+                    role={selectedRole}
+                    onBack={handleBackToRoleSelection}
+                  />
                 )}
 
                 {/* Login Link */}

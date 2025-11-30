@@ -47,9 +47,9 @@ export default function Login() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setLoginError("");
-    
+
     const success = await login(data.email, data.password);
-    
+
     if (!success) {
       setLoginError("Invalid email or password. Please try again.");
       toast({
@@ -105,16 +105,14 @@ export default function Login() {
           items={navItems}
           baseColor="#fff"
           menuColor="hsl(200 85% 45%)"
-          buttonLink="/signup"
           onExpandChange={setIsNavExpanded}
         />
         <Squares speed={0.5} squareSize={40} direction="diagonal" />
-        
+
         {/* Animated Title - Shows when navbar is closed, hides when nav cards appear */}
-        <div 
-          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${
-            isNavExpanded ? 'opacity-0 scale-95 -translate-y-8 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
-          }`}
+        <div
+          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${isNavExpanded ? 'opacity-0 scale-95 -translate-y-8 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
+            }`}
         >
           <div className="animate-fade-in-up">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight">
@@ -128,7 +126,7 @@ export default function Login() {
             </p>
           </div>
         </div>
-        
+
         <div className="relative z-10 container mx-auto px-4 w-full max-w-2xl pointer-events-none pt-96 md:pt-72">
           <div className="animate-fade-in-up">
             {/* Badge */}
@@ -149,7 +147,7 @@ export default function Login() {
                   Enter your credentials to access your account
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -163,11 +161,11 @@ export default function Login() {
                             Email Address
                           </FormLabel>
                           <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="john@example.com" 
-                              className="h-11" 
-                              {...field} 
+                            <Input
+                              type="email"
+                              placeholder="john@example.com"
+                              className="h-11"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />

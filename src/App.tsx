@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/shared/ProtectedRoute";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 
 import PatientDashboard from "./pages/PatientDashboard";
@@ -21,6 +22,7 @@ import LabMessages from "./pages/LabMessages";
 import PhlebotomistMessages from "./pages/PhlebotomistMessages";
 import LabAppointments from "./pages/LabAppointments";
 import LabUploadReport from "./pages/LabUploadReport";
+import LabTestSelection from "./pages/LabTestSelection";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +38,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* PATIENT ROUTES */}
             <Route
@@ -86,6 +89,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRole="lab">
                   <LabUploadReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lab/test-selection"
+              element={
+                <ProtectedRoute allowedRole="lab">
+                  <LabTestSelection />
                 </ProtectedRoute>
               }
             />
