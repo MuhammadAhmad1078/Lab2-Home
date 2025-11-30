@@ -14,6 +14,8 @@ export interface ILab extends Document {
     close: string;
   };
   testTypes?: string[];
+  availableTests: mongoose.Types.ObjectId[]; // References to Test model
+  hasConfiguredTests: boolean;
   certifications?: string[];
   isVerified: boolean;
   isActive: boolean;
@@ -72,6 +74,14 @@ const labSchema = new Schema<ILab>(
       type: [String],
       default: ['Blood Test', 'Urine Test', 'X-Ray', 'CBC', 'Lipid Panel'],
     },
+    availableTests: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Test' }],
+      default: [],
+    },
+    hasConfiguredTests: {
+      type: Boolean,
+      default: false,
+    },
     certifications: {
       type: [String],
       default: [],
@@ -95,7 +105,7 @@ labSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);

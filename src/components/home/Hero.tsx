@@ -46,7 +46,6 @@ const Hero = () => {
         items={navItems}
         baseColor="#fff"
         menuColor="hsl(200 85% 45%)"
-        buttonLink="/signup"
       />
       <Squares speed={0.5} squareSize={40} direction="diagonal" />
       

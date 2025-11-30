@@ -25,7 +25,6 @@ export interface CardNavProps {
   ease?: string;
   baseColor?: string;
   menuColor?: string;
-  buttonLink?: string;
   onExpandChange?: (isExpanded: boolean) => void;
 }
 
@@ -37,7 +36,6 @@ const CardNav: React.FC<CardNavProps> = ({
   ease = 'power3.out',
   baseColor = '#fff',
   menuColor,
-  buttonLink = '/signup',
   onExpandChange
 }) => {
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
@@ -206,14 +204,25 @@ const CardNav: React.FC<CardNavProps> = ({
             <img src={logo} alt={logoAlt} className="logo h-[28px]" />
           </Link>
 
-          <Button
-            asChild
-            className="card-nav-cta-button hidden md:inline-flex h-[44px]"
-          >
-            <Link to={buttonLink}>
-              Get Started
-            </Link>
-          </Button>
+          <div className="hidden md:flex gap-2 items-center">
+            <Button
+              asChild
+              variant="outline"
+              className="h-[44px]"
+            >
+              <Link to="/login">
+                Login
+              </Link>
+            </Button>
+            <Button
+              asChild
+              className="h-[44px]"
+            >
+              <Link to="/signup">
+                Signup
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div

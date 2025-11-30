@@ -1,5 +1,4 @@
 // src/components/patient/TestBookingForm.tsx
-
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,40 +9,46 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import AddressAutocomplete from "@/components/shared/AddressAutocomplete";
 
 /* ----------------------------------------------
    TYPES
 ---------------------------------------------- */
-interface LabInfo {
-  id: string;
+// Import types from BookTest or define shared types
+interface Test {
+  _id: string;
   name: string;
-  address: string;
-  rating: number;
-  distance: string;
-  logo: string;
-  tests: number[];
-  slots: string[];
+  description: string;
+  category: string;
+  basePrice: number;
+  preparationInstructions?: string;
+  reportDeliveryTime: string;
+  sampleType?: string;
+}
+
+interface LabInfo {
+  _id: string;
+  labName: string;
+  labAddress: string;
+  rating?: number;
+  distance?: string;
+  logo?: string;
+  availableTests: Test[];
+  operatingHours?: {
+    open: string;
+    close: string;
+  };
 }
 
 interface FormProps {
   selectedLab: LabInfo | null;
 }
-
-/* ----------------------------------------------
-   TEST DEFINITIONS
----------------------------------------------- */
-const testCategories = [
-  { id: 1, name: "Complete Blood Count (CBC)" },
-  { id: 2, name: "Blood Sugar" },
-  { id: 3, name: "Lipid Panel" },
-  { id: 4, name: "Liver Function Test" },
-  { id: 5, name: "Kidney Function Test" },
-  { id: 6, name: "Thyroid Test" },
-  { id: 7, name: "Urine Test" },
-  { id: 8, name: "COVID-19 PCR" },
-];
 
 /* ----------------------------------------------
    STEPS
@@ -60,14 +65,18 @@ const steps = [
    COMPONENT
 ---------------------------------------------- */
 const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   /* Form States */
   const [step, setStep] = useState(1);
-  const [selectedTests, setSelectedTests] = useState<number[]>([]);
+  const [selectedTests, setSelectedTests] = useState<string[]>([]); // Array of Test IDs
   const [mode, setMode] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [address, setAddress] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   /* Today (for date validation) */
   const today = new Date().toISOString().split("T")[0];
@@ -86,8 +95,73 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
   };
 
   /* ----------------------------------------------
+     HANDLE SUBMISSION
+  ---------------------------------------------- */
+  const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Please login to book a test");
+      navigate("/login");
+      return;
+    }
+
+    if (!selectedLab) return;
+
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('lab2home_token');
+
+      // Create a booking for each selected test
+      const promises = selectedTests.map(testId => {
+        return fetch('http://localhost:5000/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            patient: user.id,
+            lab: selectedLab._id,
+            test: testId,
+            bookingDate: selectedDate,
+            preferredTimeSlot: selectedSlot,
+            collectionType: mode,
+            collectionAddress: mode === 'home' ? address : undefined,
+            status: 'pending',
+            paymentStatus: 'pending',
+          }),
+        });
+      });
+
+      await Promise.all(promises);
+
+      setConfirmed(true);
+      toast.success("Booking confirmed successfully!");
+      setTimeout(() => {
+        resetForm();
+        navigate("/patient"); // Redirect to dashboard
+      }, 2000);
+
+    } catch (error) {
+      console.error("Booking error:", error);
+      toast.error("Failed to create booking. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ----------------------------------------------
      UI
   ---------------------------------------------- */
+  if (!selectedLab) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center p-6">
+        <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold">No Lab Selected</h3>
+        <p className="text-muted-foreground">Please select a laboratory from the list to proceed with booking.</p>
+      </div>
+    );
+  }
+
   return (
     <Card className="max-w-xl mx-auto shadow-lg">
 
@@ -98,16 +172,14 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
           return (
             <div key={s.label} className="flex flex-col items-center">
               <div
-                className={`rounded-full p-2 transition-all ${
-                  active ? "bg-primary text-white" : "bg-muted"
-                }`}
+                className={`rounded-full p-2 transition-all ${active ? "bg-primary text-white" : "bg-muted"
+                  }`}
               >
                 {s.icon}
               </div>
               <span
-                className={`text-[11px] mt-1 ${
-                  active ? "text-primary font-semibold" : "text-muted-foreground"
-                }`}
+                className={`text-[11px] mt-1 ${active ? "text-primary font-semibold" : "text-muted-foreground"
+                  }`}
               >
                 {s.label}
               </span>
@@ -131,30 +203,44 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
               <CardTitle>Select Test(s)</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-3">
-              {selectedLab?.tests.map((id) => {
-                const test = testCategories.find((t) => t.id === id);
-                return (
+            <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+              {selectedLab.availableTests.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No tests available for this lab.</p>
+              ) : (
+                selectedLab.availableTests.map((test) => (
                   <label
-                    key={id}
-                    className="flex gap-2 p-2 bg-muted/40 rounded cursor-pointer hover:bg-primary/10"
+                    key={test._id}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTests.includes(test._id)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30"
+                      }`}
                   >
                     <input
                       type="checkbox"
-                      checked={selectedTests.includes(id)}
+                      checked={selectedTests.includes(test._id)}
                       onChange={() =>
                         setSelectedTests((prev) =>
-                          prev.includes(id)
-                            ? prev.filter((x) => x !== id)
-                            : [...prev, id]
+                          prev.includes(test._id)
+                            ? prev.filter((x) => x !== test._id)
+                            : [...prev, test._id]
                         )
                       }
-                      className="accent-primary"
+                      className="mt-1 accent-primary"
                     />
-                    {test?.name}
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{test.name}</span>
+                        <span className="text-primary font-semibold">₹{test.basePrice}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{test.description}</p>
+                      <div className="flex gap-2 mt-2 text-[10px] text-muted-foreground uppercase tracking-wider">
+                        <span className="bg-muted px-1.5 py-0.5 rounded">{test.category}</span>
+                        <span className="bg-muted px-1.5 py-0.5 rounded">{test.reportDeliveryTime}</span>
+                      </div>
+                    </div>
                   </label>
-                );
-              })}
+                ))
+              )}
             </CardContent>
 
             <CardFooter className="justify-end">
@@ -183,22 +269,30 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
             </CardHeader>
 
             <CardContent className="flex gap-4">
-              <label className="cursor-pointer flex gap-2 p-3 bg-muted/40 rounded">
+              <label className={`cursor-pointer flex-1 flex flex-col items-center gap-2 p-4 border rounded-lg transition-all ${mode === 'home' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
                 <input
                   type="radio"
                   name="mode"
+                  className="hidden"
                   onChange={() => setMode("home")}
+                  checked={mode === "home"}
                 />
-                Home Collection
+                <Home className={`h-8 w-8 ${mode === 'home' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="font-medium">Home Collection</span>
+                <span className="text-xs text-muted-foreground text-center">Phlebotomist visits your home</span>
               </label>
 
-              <label className="cursor-pointer flex gap-2 p-3 bg-muted/40 rounded">
+              <label className={`cursor-pointer flex-1 flex flex-col items-center gap-2 p-4 border rounded-lg transition-all ${mode === 'lab' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
                 <input
                   type="radio"
                   name="mode"
+                  className="hidden"
                   onChange={() => setMode("lab")}
+                  checked={mode === "lab"}
                 />
-                Visit Lab
+                <Building2 className={`h-8 w-8 ${mode === 'lab' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="font-medium">Visit Lab</span>
+                <span className="text-xs text-muted-foreground text-center">You visit the lab center</span>
               </label>
             </CardContent>
 
@@ -224,26 +318,25 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
             exit={{ opacity: 0 }}
           >
             <CardHeader>
-              <CardTitle>Laboratory & Slot</CardTitle>
+              <CardTitle>Date & Time</CardTitle>
             </CardHeader>
 
             <CardContent>
               {/* Selected Lab */}
               <div className="flex gap-3 p-3 border rounded bg-primary/10 mb-4">
-                <img
-                  src={selectedLab?.logo}
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+                <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
                 <div>
-                  <p className="font-semibold">{selectedLab?.name}</p>
+                  <p className="font-semibold">{selectedLab.labName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedLab?.address}
+                    {selectedLab.labAddress}
                   </p>
                 </div>
               </div>
 
               {/* Date */}
-              <label className="text-xs font-medium">Date:</label>
+              <label className="text-xs font-medium block mb-1.5">Select Date</label>
               <Input
                 type="date"
                 min={today}
@@ -253,17 +346,21 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
               />
 
               {/* Slots */}
-              <label className="text-xs font-medium">Time Slot:</label>
-              <select
-                className="border p-2 rounded w-full"
-                value={selectedSlot}
-                onChange={(e) => setSelectedSlot(e.target.value)}
-              >
-                <option value="">Select Slot</option>
-                {selectedLab?.slots.map((slot) => (
-                  <option key={slot}>{slot}</option>
+              <label className="text-xs font-medium block mb-1.5">Select Time Slot</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'].map((slot) => (
+                  <button
+                    key={slot}
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`p-2 text-sm rounded border transition-all ${selectedSlot === slot
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'hover:border-primary/50'
+                      }`}
+                  >
+                    {slot}
+                  </button>
                 ))}
-              </select>
+              </div>
             </CardContent>
 
             <CardFooter className="justify-between">
@@ -290,11 +387,13 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
             </CardHeader>
 
             <CardContent>
-              <Input
-                placeholder="Enter your complete address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+              <AddressAutocomplete
+                onSelect={(addr) => setAddress(addr)}
+                defaultValue={address}
               />
+              <p className="text-xs text-muted-foreground mt-2">
+                Search for your address or use current location.
+              </p>
             </CardContent>
 
             <CardFooter className="justify-between">
@@ -317,34 +416,72 @@ const TestBookingForm: React.FC<FormProps> = ({ selectedLab }) => {
               <CardTitle>Review & Confirm</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-2 text-sm">
-              <p><strong>Lab:</strong> {selectedLab?.name}</p>
-              <p>
-                <strong>Tests:</strong>{" "}
-                {selectedTests
-                  .map((id) => testCategories.find((t) => t.id === id)?.name)
-                  .join(", ")}
-              </p>
-              <p><strong>Date:</strong> {selectedDate}</p>
-              <p><strong>Slot:</strong> {selectedSlot}</p>
-              {mode === "home" && <p><strong>Address:</strong> {address}</p>}
+            <CardContent className="space-y-4 text-sm">
+              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Laboratory:</span>
+                  <span className="font-medium">{selectedLab.labName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Date & Time:</span>
+                  <span className="font-medium">{selectedDate} at {selectedSlot}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Collection Type:</span>
+                  <span className="font-medium capitalize">{mode === 'home' ? 'Home Collection' : 'Lab Visit'}</span>
+                </div>
+                {mode === "home" && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Address:</span>
+                    <span className="font-medium text-right max-w-[200px]">{address}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Selected Tests</h4>
+                <div className="space-y-2">
+                  {selectedTests.map((id) => {
+                    const test = selectedLab.availableTests.find((t) => t._id === id);
+                    return (
+                      <div key={id} className="flex justify-between text-sm border-b pb-2">
+                        <span>{test?.name}</span>
+                        <span className="font-medium">₹{test?.basePrice}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between pt-2 font-bold text-lg">
+                  <span>Total Amount</span>
+                  <span>₹{selectedTests.reduce((sum, id) => {
+                    const test = selectedLab.availableTests.find((t) => t._id === id);
+                    return sum + (test?.basePrice || 0);
+                  }, 0)}</span>
+                </div>
+              </div>
             </CardContent>
 
             <CardFooter className="justify-between">
               <Button
                 variant="secondary"
                 onClick={() => setStep(mode === "home" ? 4 : 3)}
+                disabled={submitting}
               >
                 Back
               </Button>
 
               <Button
-                onClick={() => {
-                  setConfirmed(true);
-                  setTimeout(() => resetForm(), 2000);
-                }}
+                onClick={handleSubmit}
+                disabled={submitting}
               >
-                Confirm & Book
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Booking...
+                  </>
+                ) : (
+                  "Confirm & Book"
+                )}
               </Button>
             </CardFooter>
           </motion.div>

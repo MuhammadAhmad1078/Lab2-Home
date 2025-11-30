@@ -1,5 +1,5 @@
 // src/pages/BookTest.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
@@ -7,61 +7,87 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   TestTube,
-  Calendar,
   Clock,
   MapPin,
   Truck,
   HeartPulse,
-  Star,
+  Calendar,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import TestBookingForm from "@/components/patient/TestBookingForm";
+import { toast } from "sonner";
+import { useLoadScript } from "@react-google-maps/api";
 
-type Lab = {
-  id: string;
+// Define types based on API response
+export interface Test {
+  _id: string;
   name: string;
-  address: string;
-  rating: number;
-  distance: string;
-  logo: string;
-  tests: number[];  // IDs of tests available
-  slots: string[];  // Times available
-};
+  description: string;
+  category: string;
+  basePrice: number;
+  preparationInstructions?: string;
+  reportDeliveryTime: string;
+  sampleType?: string;
+}
 
-const labs: Lab[] = [
-  {
-    id: "lab-1",
-    name: "Chughtai Lab",
-    address: "Gulberg III, Lahore",
-    rating: 4.8,
-    distance: "2.1 km",
-    logo: "/labs/chughtai.png",
-    tests: [1, 2, 3, 4],
-    slots: ["09:00 AM", "11:00 AM", "03:00 PM"],
-  },
-  {
-    id: "lab-2",
-    name: "Shaukat Khanum Lab",
-    address: "Johar Town, Lahore",
-    rating: 4.7,
-    distance: "3.5 km",
-    logo: "/labs/shaukat-khanum.png",
-    tests: [1, 5, 7],
-    slots: ["10:00 AM", "01:00 PM", "04:00 PM"],
-  },
-  {
-    id: "lab-3",
-    name: "Excel Diagnostics",
-    address: "Model Town, Lahore",
-    rating: 4.6,
-    distance: "4.0 km",
-    logo: "/labs/excel-diagnostics.png",
-    tests: [2, 3, 6, 8],
-    slots: ["09:30 AM", "12:00 PM", "05:00 PM"],
-  },
-];
+export interface Lab {
+  _id: string;
+  labName: string;
+  labAddress: string;
+  rating?: number;
+  distance?: string;
+  logo?: string;
+  availableTests: Test[];
+  operatingHours?: {
+    open: string;
+    close: string;
+  };
+}
+
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
 
 const BookTest: React.FC = () => {
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries,
+  });
+
+  useEffect(() => {
+    const fetchLabs = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/labs/available');
+        const data = await response.json();
+
+        if (data.success) {
+          setLabs(data.data);
+        } else {
+          toast.error('Failed to fetch available labs');
+        }
+      } catch (error) {
+        console.error('Error fetching labs:', error);
+        toast.error('Error loading labs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLabs();
+  }, []);
+
+  if (!isLoaded) {
+    return (
+      <DashboardLayout role="patient">
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="patient">
@@ -76,7 +102,7 @@ const BookTest: React.FC = () => {
         <StatCard title="Available Tests" value="35+" icon={TestTube} color="primary" delay={0} />
         <StatCard title="Home Collections" value="18" change="Today" trend="up" icon={Truck} color="success" delay={0.1} />
         <StatCard title="Next Free Slot" value="Today, 4:00 PM" icon={Clock} color="warning" delay={0.2} />
-        <StatCard title="Nearby Labs" value="4" icon={MapPin} color="accent" delay={0.3} />
+        <StatCard title="Nearby Labs" value={labs.length.toString()} icon={MapPin} color="accent" delay={0.3} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -86,28 +112,45 @@ const BookTest: React.FC = () => {
           {/* Select Lab */}
           <Card className="p-6 shadow-soft">
             <h2 className="font-semibold text-lg mb-4">1. Select Laboratory</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {labs.map((lab) => (
-                <button
-                  key={lab.id}
-                  onClick={() => setSelectedLab(lab)}
-                  className={`flex w-full p-4 gap-3 rounded-xl border shadow-sm transition ${
-                    selectedLab?.id === lab.id
-                      ? "border-primary bg-primary/10"
-                      : "hover:border-primary/40"
-                  }`}
-                >
-                  <img src={lab.logo} className="h-12 w-12 rounded-full" />
-                  <div className="flex-1">
-                    <p className="font-semibold">{lab.name}</p>
-                    <p className="text-xs text-muted-foreground">{lab.address}</p>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                      ⭐ {lab.rating} • 📍 {lab.distance}
+
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : labs.length === 0 ? (
+              <div className="flex items-center gap-3 p-4 border border-warning/50 bg-warning/10 rounded-lg text-warning">
+                <AlertCircle className="h-5 w-5" />
+                <p>No labs are currently available for booking.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {labs.map((lab) => (
+                  <button
+                    key={lab._id}
+                    onClick={() => setSelectedLab(lab)}
+                    className={`flex w-full p-4 gap-3 rounded-xl border shadow-sm transition text-left ${selectedLab?._id === lab._id
+                        ? "border-primary bg-primary/10"
+                        : "hover:border-primary/40"
+                      }`}
+                  >
+                    <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+                      <TestTube className="h-6 w-6 text-secondary" />
                     </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{lab.labName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{lab.labAddress}</p>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                        <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          {lab.availableTests?.length || 0} Tests
+                        </span>
+                        <span>•</span>
+                        <span>{lab.operatingHours?.open || '09:00'} - {lab.operatingHours?.close || '17:00'}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Test Form */}
@@ -122,7 +165,7 @@ const BookTest: React.FC = () => {
             <h3 className="font-semibold flex gap-2">
               <HeartPulse className="h-5 w-5 text-secondary" /> Why Home Collection?
             </h3>
-            <ul className="text-sm text-muted-foreground mt-3">
+            <ul className="text-sm text-muted-foreground mt-3 space-y-2">
               <li>• Avoid long queues</li>
               <li>• Safer for elderly</li>
               <li>• Digital Reports</li>

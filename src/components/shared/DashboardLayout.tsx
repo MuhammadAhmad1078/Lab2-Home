@@ -3,11 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  LayoutDashboard, 
-  TestTube, 
-  FileText, 
-  ShoppingBag, 
+import {
+  LayoutDashboard,
+  TestTube,
+  FileText,
+  ShoppingBag,
   MessageSquare,
   Bell,
   Settings,
@@ -42,6 +42,7 @@ const roleConfig = {
     color: "secondary",
     nav: [
       { name: "Dashboard", path: "/lab", icon: LayoutDashboard },
+      { name: "Test Selection", path: "/lab/test-selection", icon: TestTube },
       { name: "Appointments", path: "/lab/appointments", icon: Calendar },
       { name: "Upload Reports", path: "/lab/reports", icon: FileText },
       { name: "Messages", path: "/lab/messages", icon: MessageSquare },
@@ -104,7 +105,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
             {config.nav.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
@@ -117,8 +118,8 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                     transition={{ delay: index * 0.05 }}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-medium" 
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-medium"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
@@ -140,7 +141,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
               <Settings className="h-4 w-4" />
               Settings
             </button>
-            <button 
+            <button
               onClick={logout}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-all hover:bg-destructive/10"
             >
