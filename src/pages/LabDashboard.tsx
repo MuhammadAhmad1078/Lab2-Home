@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
@@ -5,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
+import {
   Calendar,
   FileUp,
   Users,
@@ -13,28 +14,106 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Upload
+  Upload,
+  Loader2
 } from "lucide-react";
+import { toast } from "sonner";
 
-const pendingReports = [
-  { id: 1, patient: "Sarah Wilson", test: "Complete Blood Count", collected: "2 hours ago", priority: "High" },
-  { id: 2, patient: "Michael Chen", test: "Lipid Panel", collected: "5 hours ago", priority: "Normal" },
-  { id: 3, patient: "Emma Brown", test: "Thyroid Test", collected: "1 day ago", priority: "High" },
-];
-
-const todayAppointments = [
-  { id: 1, patient: "John Doe", time: "10:00 AM", test: "Blood Sugar", status: "Completed" },
-  { id: 2, patient: "Jane Smith", time: "11:30 AM", test: "Liver Function", status: "In Progress" },
-  { id: 3, patient: "Robert Johnson", time: "2:00 PM", test: "Kidney Function", status: "Scheduled" },
-  { id: 4, patient: "Lisa Anderson", time: "3:30 PM", test: "Complete Blood Count", status: "Scheduled" },
-];
+interface Booking {
+  _id: string;
+  patient: {
+    _id: string;
+    fullName: string;
+  };
+  test: {
+    name: string;
+  };
+  bookingDate: string;
+  preferredTimeSlot: string;
+  status: string;
+}
 
 const LabDashboard = () => {
   const { user } = useAuth();
-  
-  console.log('🏥 LabDashboard rendered, user:', user);
-  console.log('👤 User role:', user?.role);
-  console.log('🎯 User type:', user?.userType);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    todayAppointments: 0,
+    pendingReports: 0,
+    activePatients: 0,
+    completionRate: 0,
+    completedToday: 0,
+    inProgressToday: 0,
+    scheduledToday: 0,
+    cancelledToday: 0
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user?.id) return;
+
+      try {
+        const token = localStorage.getItem('lab2home_token');
+        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          const allBookings = data.data;
+          setBookings(allBookings);
+
+          // Calculate stats
+          const today = new Date().toISOString().split('T')[0];
+
+          const todayBookings = allBookings.filter((b: Booking) =>
+            new Date(b.bookingDate).toISOString().split('T')[0] === today
+          );
+
+          const uniquePatients = new Set(allBookings.map((b: Booking) => b.patient?._id)).size;
+          const completedCount = allBookings.filter((b: Booking) => b.status === 'completed').length;
+          const totalActionable = allBookings.filter((b: Booking) => b.status !== 'cancelled').length;
+          const rate = totalActionable > 0 ? Math.round((completedCount / totalActionable) * 100) : 0;
+
+          setStats({
+            todayAppointments: todayBookings.length,
+            pendingReports: allBookings.filter((b: Booking) => b.status === 'in-progress').length,
+            activePatients: uniquePatients,
+            completionRate: rate,
+            completedToday: todayBookings.filter((b: Booking) => b.status === 'completed').length,
+            inProgressToday: todayBookings.filter((b: Booking) => b.status === 'in-progress').length,
+            scheduledToday: todayBookings.filter((b: Booking) => ['pending', 'confirmed'].includes(b.status)).length,
+            cancelledToday: todayBookings.filter((b: Booking) => b.status === 'cancelled').length,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching lab dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user?.id]);
+
+  if (loading) {
+    return (
+      <DashboardLayout role="lab">
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Filter for today's appointments list
+  const today = new Date().toISOString().split('T')[0];
+  const todaysList = bookings.filter((b: Booking) =>
+    new Date(b.bookingDate).toISOString().split('T')[0] === today
+  );
 
   return (
     <DashboardLayout role="lab">
@@ -53,34 +132,30 @@ const LabDashboard = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Today's Appointments"
-          value="12"
+          value={stats.todayAppointments.toString()}
           icon={Calendar}
           color="secondary"
           delay={0}
         />
         <StatCard
           title="Pending Reports"
-          value="8"
-          change="-2 from yesterday"
+          value={stats.pendingReports.toString()}
+          change="Needs Action"
           trend="down"
           icon={FileUp}
           color="warning"
           delay={0.1}
         />
         <StatCard
-          title="Active Patients"
-          value="156"
-          change="+12 this week"
-          trend="up"
+          title="Total Patients"
+          value={stats.activePatients.toString()}
           icon={Users}
           color="primary"
           delay={0.2}
         />
         <StatCard
           title="Completion Rate"
-          value="94%"
-          change="+2%"
-          trend="up"
+          value={`${stats.completionRate}%`}
           icon={TrendingUp}
           color="success"
           delay={0.3}
@@ -88,7 +163,7 @@ const LabDashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Pending Reports Upload */}
+        {/* Pending Reports Upload (Mocked for now as we don't have report upload yet) */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -98,45 +173,48 @@ const LabDashboard = () => {
           <Card className="border-border bg-card p-6 shadow-soft">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Pending Report Uploads</h2>
-                <p className="text-sm text-muted-foreground">Tests awaiting results submission</p>
+                <h2 className="text-xl font-semibold text-foreground">Pending Actions</h2>
+                <p className="text-sm text-muted-foreground">Bookings requiring attention</p>
               </div>
-              <Button>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Report
-              </Button>
             </div>
 
             <div className="space-y-4">
-              {pendingReports.map((report, index) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                      <FileUp className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{report.patient}</p>
-                      <p className="text-sm text-muted-foreground">{report.test}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        Collected {report.collected}
+              {bookings.filter(b => b.status === 'pending').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No pending bookings requiring attention.
+                </div>
+              ) : (
+                bookings
+                  .filter(b => b.status === 'pending')
+                  .slice(0, 5)
+                  .map((booking, index) => (
+                    <motion.div
+                      key={booking._id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                      className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                          <Clock className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{booking.patient?.fullName || 'Unknown Patient'}</p>
+                          <p className="text-sm text-muted-foreground">{booking.test?.name}</p>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(booking.bookingDate).toLocaleDateString()} at {booking.preferredTimeSlot}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={report.priority === "High" ? "destructive" : "secondary"}>
-                      {report.priority}
-                    </Badge>
-                    <Button size="sm">Upload</Button>
-                  </div>
-                </motion.div>
-              ))}
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline">Pending</Badge>
+                        <Button size="sm" variant="secondary">Process</Button>
+                      </div>
+                    </motion.div>
+                  ))
+              )}
             </div>
           </Card>
         </motion.div>
@@ -157,7 +235,7 @@ const LabDashboard = () => {
                   <CheckCircle2 className="h-4 w-4 text-success" />
                   <span className="text-sm text-muted-foreground">Completed</span>
                 </div>
-                <span className="font-semibold text-foreground">8</span>
+                <span className="font-semibold text-foreground">{stats.completedToday}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -165,7 +243,7 @@ const LabDashboard = () => {
                   <Clock className="h-4 w-4 text-warning" />
                   <span className="text-sm text-muted-foreground">In Progress</span>
                 </div>
-                <span className="font-semibold text-foreground">2</span>
+                <span className="font-semibold text-foreground">{stats.inProgressToday}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -173,7 +251,7 @@ const LabDashboard = () => {
                   <Calendar className="h-4 w-4 text-primary" />
                   <span className="text-sm text-muted-foreground">Scheduled</span>
                 </div>
-                <span className="font-semibold text-foreground">4</span>
+                <span className="font-semibold text-foreground">{stats.scheduledToday}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -181,7 +259,7 @@ const LabDashboard = () => {
                   <XCircle className="h-4 w-4 text-destructive" />
                   <span className="text-sm text-muted-foreground">Cancelled</span>
                 </div>
-                <span className="font-semibold text-foreground">1</span>
+                <span className="font-semibold text-foreground">{stats.cancelledToday}</span>
               </div>
             </div>
           </Card>
@@ -192,30 +270,15 @@ const LabDashboard = () => {
             <div className="space-y-3">
               <div>
                 <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Report Turnaround</span>
-                  <span className="font-medium text-foreground">4.2h avg</span>
+                  <span className="text-muted-foreground">Completion Rate</span>
+                  <span className="font-medium text-foreground">{stats.completionRate}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: "85%" }}
+                    animate={{ width: `${stats.completionRate}%` }}
                     transition={{ delay: 0.6, duration: 0.8 }}
                     className="h-full bg-secondary"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Quality Score</span>
-                  <span className="font-medium text-foreground">96%</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "96%" }}
-                    transition={{ delay: 0.7, duration: 0.8 }}
-                    className="h-full bg-success"
                   />
                 </div>
               </div>
@@ -224,7 +287,7 @@ const LabDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Today's Appointments */}
+      {/* Today's Appointments List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -234,37 +297,44 @@ const LabDashboard = () => {
         <Card className="border-border bg-card p-6 shadow-soft">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-foreground">Today's Appointments</h2>
-            <p className="text-sm text-muted-foreground">Scheduled sample collections and tests</p>
+            <p className="text-sm text-muted-foreground">Scheduled sample collections and tests for today</p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            {todayAppointments.map((apt, index) => (
-              <motion.div
-                key={apt.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 + index * 0.05 }}
-                className="flex items-center justify-between rounded-lg border border-border bg-background p-4 hover:shadow-soft"
-              >
-                <div>
-                  <p className="font-medium text-foreground">{apt.patient}</p>
-                  <p className="text-sm text-muted-foreground">{apt.test}</p>
-                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {apt.time}
-                  </div>
-                </div>
-                <Badge 
-                  variant={
-                    apt.status === "Completed" ? "default" :
-                    apt.status === "In Progress" ? "secondary" :
-                    "outline"
-                  }
+            {todaysList.length === 0 ? (
+              <div className="col-span-2 text-center py-8 text-muted-foreground">
+                No appointments scheduled for today.
+              </div>
+            ) : (
+              todaysList.map((apt, index) => (
+                <motion.div
+                  key={apt._id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.7 + index * 0.05 }}
+                  className="flex items-center justify-between rounded-lg border border-border bg-background p-4 hover:shadow-soft"
                 >
-                  {apt.status}
-                </Badge>
-              </motion.div>
-            ))}
+                  <div>
+                    <p className="font-medium text-foreground">{apt.patient?.fullName || 'Unknown'}</p>
+                    <p className="text-sm text-muted-foreground">{apt.test?.name}</p>
+                    <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {apt.preferredTimeSlot}
+                    </div>
+                  </div>
+                  <Badge
+                    variant={
+                      apt.status === "completed" ? "default" :
+                        apt.status === "in-progress" ? "secondary" :
+                          "outline"
+                    }
+                    className="capitalize"
+                  >
+                    {apt.status}
+                  </Badge>
+                </motion.div>
+              ))
+            )}
           </div>
         </Card>
       </motion.div>

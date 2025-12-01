@@ -1,561 +1,263 @@
-// src/pages/LabUploadReport.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
-import { StatCard } from "@/components/shared/StatCard";
-import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { uploadReport } from "@/lib/api";
 import {
-  FileUp,
   FileText,
+  Upload,
+  User,
   Calendar,
   Search,
-  AlertCircle,
-  Eye,
-  Pencil,
-  Trash2,
-  X,
-  CheckCircle2,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
 
-// =============================================================
-// ⭐ TYPES (Fully Typed – No ANY)
-// =============================================================
-type Patient = {
-  id: string;
-  name: string;
-  dob: string;
-  address: string;
-  gender: "Male" | "Female" | "Other";
-};
-
-
-type ReportStatus = "Delivered" | "Pending Review";
-
-interface Report {
-  id: number;
-  patientId: string;
-  patient: Patient;
-  test: string;
-  date: string;
-  file: string;
-  status: ReportStatus;
+interface Appointment {
+  _id: string;
+  patient: {
+    _id: string;
+    fullName: string;
+    phone: string;
+  };
+  test: {
+    name: string;
+  };
+  bookingDate: string;
+  status: string;
+  reportUrl?: string;
 }
 
-// =============================================================
-// ⭐ MOCK PATIENT DATABASE
-// =============================================================
-const mockPatients: Record<string, Patient> = {
-  "001": {
-    id: "001",
-    name: "Ali Raza",
-    dob: "1995-05-12",
-    address: "Model Town, Lahore",
-    gender: "Male",
-  },
-  "002": {
-    id: "002",
-    name: "Sara Khan",
-    dob: "1998-09-20",
-    address: "Gulberg II, Lahore",
-    gender: "Female",
-  },
-};
-
-
-// =============================================================
-// ⭐ INITIAL REPORTS
-// =============================================================
-const initialReports: Report[] = [
-  {
-    id: 1,
-    patientId: "001",
-    patient: mockPatients["001"],
-    test: "CBC",
-    date: "2025-11-24",
-    file: "cbc_report.pdf",
-    status: "Delivered",
-  },
-  {
-    id: 2,
-    patientId: "002",
-    patient: mockPatients["002"],
-    test: "Blood Sugar",
-    date: "2025-11-24",
-    file: "sugar_report.pdf",
-    status: "Pending Review",
-  },
-];
-
-// =============================================================
-// ⭐ COMPONENT START
-// =============================================================
-export default function LabUploadReport() {
-  const [reports, setReports] = useState<Report[]>(initialReports);
+const LabUploadReport: React.FC = () => {
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
-  // Upload Form States
-  const [patientId, setPatientId] = useState("");
-  const [patientInfo, setPatientInfo] = useState<Patient | null>(null);
-  const [testName, setTestName] = useState("");
+  const [uploading, setUploading] = useState<string | null>(null); // ID of booking being uploaded
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Appointment | null>(null);
 
-  // Edit Modal States
-  const [editModal, setEditModal] = useState(false);
-  const [editReport, setEditReport] = useState<Report | null>(null);
+  // Fetch appointments
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!user?.id) return;
 
-  // View Modal
-  const [viewModal, setViewModal] = useState(false);
-  const [viewFile, setViewFile] = useState("");
+      try {
+        const token = localStorage.getItem('lab2home_token');
+        // Fetch all bookings, we'll filter client side for now as backend API returns all
+        // Ideally backend should support filtering by reportUrl existence
+        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}?status=completed`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
 
-  // Delete Modal
-  const [deleteModal, setDeleteModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Report | null>(null);
-
-  // =============================================================
-  // ⭐ Handle Patient Auto-Fill
-  // =============================================================
-  const handlePatientIdLookup = (id: string) => {
-    setPatientId(id);
-    setPatientInfo(mockPatients[id] ?? null);
-  };
-
-  // =============================================================
-  // ⭐ Validate File
-  // =============================================================
-  const validateFile = (file: File) => {
-    if (!["application/pdf", "image/png", "image/jpeg"].includes(file.type)) {
-      alert("Only PDF, PNG, and JPG files allowed!");
-      return false;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Max file size is 10MB!");
-      return false;
-    }
-    return true;
-  };
-
-  // =============================================================
-  // ⭐ Upload New Report
-  // =============================================================
-  const handleUpload = () => {
-    if (!patientId || !patientInfo || !testName || !selectedFile) {
-      alert("Please complete all fields.");
-      return;
-    }
-
-    const newReport: Report = {
-      id: reports.length + 1,
-      patientId,
-      patient: patientInfo,
-      test: testName,
-      file: selectedFile.name,
-      status: "Pending Review",
-      date: new Date().toISOString().slice(0, 10),
+        if (data.success) {
+          // Filter for completed appointments that DON'T have a report yet
+          const pendingReports = data.data.filter((a: Appointment) => !a.reportUrl);
+          setAppointments(pendingReports);
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+        toast.error('Failed to load appointments');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setReports([...reports, newReport]);
+    fetchAppointments();
+  }, [user?.id]);
 
-    setPatientId("");
-    setPatientInfo(null);
-    setTestName("");
-    setSelectedFile(null);
+  const filteredAppointments = appointments.filter((a) => {
+    const term = search.toLowerCase().trim();
+    return (
+      !term ||
+      a.patient.fullName.toLowerCase().includes(term) ||
+      a.test.name.toLowerCase().includes(term) ||
+      a.patient.phone.includes(term)
+    );
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
   };
 
-  // =============================================================
-  // ⭐ View Modal
-  // =============================================================
-  const openView = (fileName: string) => {
-    setViewFile(fileName);
-    setViewModal(true);
+  const handleUpload = async () => {
+    if (!selectedBooking || !selectedFile) return;
+
+    setUploading(selectedBooking._id);
+    try {
+      const response = await uploadReport(selectedBooking._id, selectedFile);
+
+      if (response.success) {
+        toast.success('Report uploaded successfully!');
+        // Remove from list
+        setAppointments(prev => prev.filter(a => a._id !== selectedBooking._id));
+        setSelectedBooking(null);
+        setSelectedFile(null);
+      } else {
+        toast.error(response.message || 'Failed to upload report');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload report');
+    } finally {
+      setUploading(null);
+    }
   };
 
-  // =============================================================
-  // ⭐ Edit Modal
-  // =============================================================
-  const openEdit = (report: Report) => {
-    setEditReport({ ...report });
-    setEditModal(true);
-  };
+  if (loading) {
+    return (
+      <DashboardLayout role="lab">
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-  const saveEdit = () => {
-    if (!editReport) return;
-    setReports((p) => p.map((r) => (r.id === editReport.id ? editReport : r)));
-    setEditModal(false);
-  };
-
-  // =============================================================
-  // ⭐ Delete Report
-  // =============================================================
-  const deleteReportAction = () => {
-    if (!deleteTarget) return;
-    setReports((p) => p.filter((r) => r.id !== deleteTarget.id));
-    setDeleteModal(false);
-  };
-
-  // =============================================================
-  // ⭐ Filter Reports by Patient ID
-  // =============================================================
-  const filteredReports = reports.filter((r) =>
-    r.patientId.includes(search.trim())
-  );
-
-  // =============================================================
-  // ⭐ UI START
-  // =============================================================
   return (
     <DashboardLayout role="lab">
-      {/* HEADER */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold mb-2">Upload Reports</h1>
-        <p className="text-muted-foreground">
-          Manage uploaded lab reports and patient details.
-        </p>
-      </motion.div>
+      <div className="w-full px-4 py-6 space-y-6">
 
-      {/* STATS */}
-      <div className="grid md:grid-cols-3 gap-6 my-8">
-        <StatCard title="Total Reports" value={reports.length.toString()} icon={FileText} color="primary" />
-        <StatCard title="Uploaded Today" value="14" change="+5 vs yesterday" icon={FileUp} color="success" />
-        <StatCard
-          title="Pending Review"
-          value={reports.filter((r) => r.status !== "Delivered").length.toString()}
-          icon={AlertCircle}
-          color="warning"
-        />
-      </div>
+        {/* HEADER */}
+        <div>
+          <h1 className="text-3xl font-bold">Upload Reports</h1>
+          <p className="text-sm text-muted-foreground">
+            Upload test reports for completed appointments.
+          </p>
+        </div>
 
-      {/* MAIN GRID */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        
-        {/* UPLOAD FORM */}
-        <Card className="p-6 shadow-soft">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <FileUp className="h-5 w-5 text-primary" /> Upload New Report
-          </h2>
+        {/* SEARCH */}
+        <div className="flex items-center gap-2 max-w-md border rounded-full px-3 bg-white shadow-sm">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patient or test..."
+            className="border-none bg-transparent focus-visible:ring-0"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-          <div className="space-y-4">
-            {/* PATIENT ID */}
-            <div>
-              <label className="text-xs font-medium">Patient ID</label>
-              <Input
-                value={patientId}
-                onChange={(e) => handlePatientIdLookup(e.target.value)}
-                placeholder="Enter Patient ID"
-              />
+        {/* LIST */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredAppointments.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+              <p>No pending reports to upload.</p>
             </div>
+          ) : (
+            filteredAppointments.map((item) => (
+              <Card key={item._id} className="p-5 hover:shadow-md transition-shadow border-l-4 border-l-primary">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary" />
+                      {item.patient.fullName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{item.patient.phone}</p>
+                  </div>
+                  <div className="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded-full font-medium uppercase tracking-wide">
+                    Pending Report
+                  </div>
+                </div>
 
-            {/* AUTO-FILL PATIENT INFO */}
-            {patientInfo && (
-              <Card className="p-3 border bg-muted/40">
-                <p className="font-medium">{patientInfo.name}</p>
-                <p className="text-xs">DOB: {patientInfo.dob}</p>
-                <p className="text-xs">Address: {patientInfo.address}</p>
-                <p className="text-xs">Gender: {patientInfo.gender}</p>
+                <div className="space-y-2 text-sm mb-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{item.test.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{new Date(item.bookingDate).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full gap-2"
+                  onClick={() => setSelectedBooking(item)}
+                >
+                  <Upload className="h-4 w-4" /> Upload Report
+                </Button>
               </Card>
-
-            )}
-
-            {/* TEST NAME */}
-            <div>
-              <label className="text-xs font-medium">Test Name</label>
-              <Input
-                value={testName}
-                onChange={(e) => setTestName(e.target.value)}
-                placeholder="CBC / Lipid Panel / etc"
-              />
-            </div>
-
-            {/* FILE UPLOAD */}
-            <div>
-              <label className="text-xs font-medium">Report File</label>
-              <Input
-                type="file"
-                accept="application/pdf,image/png,image/jpeg"
-                onChange={(e) => {
-                  if (!e.target.files) return;
-                  const file = e.target.files[0];
-                  if (validateFile(file)) setSelectedFile(file);
-                }}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              disabled={!patientInfo || !testName || !selectedFile}
-              onClick={handleUpload}
-            >
-              <FileUp className="h-4 w-4 mr-2" /> Upload Report
-            </Button>
-          </div>
-        </Card>
-
-        {/* REPORTS TABLE */}
-        <Card className="lg:col-span-2 p-6 shadow-soft">
-          
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold text-lg">Uploaded Reports</h2>
-
-            {/* Search by Patient ID */}
-            <div className="flex items-center gap-2 border rounded-full px-3 py-1 bg-muted/20">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search Patient ID"
-                className="border-none bg-transparent h-8 w-32"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto border rounded-lg">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2 text-left">Patient</th>
-                  <th className="px-4 py-2 text-left">Test</th>
-                  <th className="px-4 py-2 text-left">Date</th>
-                  <th className="px-4 py-2 text-left">File</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredReports.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center">
-                      No reports found.
-                    </td>
-                  </tr>
-                )}
-
-                {filteredReports.map((r) => (
-                  <tr key={r.id} className="border-t hover:bg-muted/20">
-                    {/* PATIENT INFO */}
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{r.patient.name}</div>
-                      <div className="text-xs">ID: {r.patientId}</div>
-                      <div className="text-xs">DOB: {r.patient.dob}</div>
-                      <div className="text-xs">Gender: {r.patient.gender}</div>
-
-                      <div className="text-xs">Address: {r.patient.address}</div>
-                    </td>
-
-                    {/* TEST */}
-                    <td className="px-4 py-3">{r.test}</td>
-
-                    {/* DATE */}
-                    <td className="px-4 py-3 flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {r.date}
-                    </td>
-
-                    {/* FILE */}
-                    <td className="px-4 py-3">
-                      <button className="text-primary underline">{r.file}</button>
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="px-4 py-3">
-                      <Badge
-                        className={
-                          r.status === "Delivered"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }
-                      >
-                        {r.status}
-                      </Badge>
-                    </td>
-
-                    {/* ACTION BUTTONS */}
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        
-                        {/* VIEW */}
-                        <Button
-                          variant="outline"
-                          className="h-7 px-2 text-xs flex items-center"
-                          onClick={() => openView(r.file)}
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> View
-                        </Button>
-
-                        {/* EDIT */}
-                        <Button
-                          className="h-7 px-2 text-xs flex items-center"
-                          onClick={() => openEdit(r)}
-                        >
-                          <Pencil className="h-3 w-3 mr-1" /> Edit
-                        </Button>
-
-                        {/* DELETE */}
-                        <Button
-                          variant="destructive"
-                          className="h-7 px-2 text-xs flex items-center"
-                          onClick={() => {
-                            setDeleteTarget(r);
-                            setDeleteModal(true);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" /> Delete
-                        </Button>
-
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
-
-      {/* =========================================================
-         ⭐ VIEW MODAL
-         ========================================================= */}
-      {viewModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="w-[600px] p-6 bg-white rounded-xl shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" /> Report Preview
-              </h2>
-              <Button variant="ghost" onClick={() => setViewModal(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="border rounded-lg bg-muted/20 p-3 h-[400px] flex items-center justify-center">
-              <p className="text-muted-foreground text-sm text-center">
-                File preview will appear here (PDF / Image).
-                <br />
-                <span className="font-medium">{viewFile}</span>
-              </p>
-            </div>
-          </Card>
+            ))
+          )}
         </div>
-      )}
 
-      {/* =========================================================
-         ⭐ EDIT MODAL
-         ========================================================= */}
-      {editModal && editReport && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        {/* UPLOAD MODAL */}
+        {selectedBooking && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md p-6 bg-white animate-in fade-in zoom-in duration-200">
+              <h2 className="text-xl font-bold mb-4">Upload Report</h2>
 
-          <Card className="w-[450px] bg-white p-6 rounded-xl shadow-xl">
-            
-            {/* Header */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Pencil className="h-5 w-5 text-primary" /> Edit Report
-              </h2>
-              <Button variant="ghost" onClick={() => setEditModal(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+              <div className="space-y-4 mb-6">
+                <div className="bg-muted/30 p-3 rounded-lg text-sm">
+                  <p><strong>Patient:</strong> {selectedBooking.patient.fullName}</p>
+                  <p><strong>Test:</strong> {selectedBooking.test.name}</p>
+                </div>
 
-            <div className="space-y-4 mt-4">
-
-              {/* PATIENT (read-only) */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">Patient</p>
-                <Input value={editReport.patient.name} disabled />
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleFileChange}
+                  />
+                  {selectedFile ? (
+                    <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
+                      <FileText className="h-6 w-6" />
+                      {selectedFile.name}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p>Click to select file</p>
+                      <p className="text-xs mt-1">PDF, JPG, PNG (Max 5MB)</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* TEST NAME */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">Test Name</p>
-                <Input
-                  value={editReport.test}
-                  onChange={(e) =>
-                    setEditReport({ ...editReport, test: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* STATUS */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">Status</p>
-                <Input
-                  value={editReport.status}
-                  onChange={(e) =>
-                    setEditReport({
-                      ...editReport,
-                      status: e.target.value as ReportStatus,
-                    })
-                  }
-                />
-              </div>
-
-              {/* Replace File */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  Replace File (optional)
-                </p>
-                <Input
-                  type="file"
-                  accept="application/pdf,image/png,image/jpeg"
-                  onChange={(e) => {
-                    if (!e.target.files) return;
-                    const file = e.target.files[0];
-                    if (validateFile(file)) {
-                      setEditReport({ ...editReport, file: file.name });
-                    }
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedBooking(null);
+                    setSelectedFile(null);
                   }}
-                />
-                <p className="text-xs mt-1 text-muted-foreground">
-                  Current: {editReport.file}
-                </p>
+                  disabled={!!uploading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || !!uploading}
+                  className="gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" /> Upload
+                    </>
+                  )}
+                </Button>
               </div>
+            </Card>
+          </div>
+        )}
 
-              <Button className="w-full" onClick={saveEdit}>
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Save Changes
-              </Button>
-            </div>
-
-          </Card>
-        </div>
-      )}
-
-      {/* =========================================================
-         ⭐ DELETE MODAL
-         ========================================================= */}
-      {deleteModal && deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-
-          <Card className="w-[380px] bg-white p-6 rounded-xl shadow-xl animate-in fade-in zoom-in-95">
-
-            <div className="flex gap-3 items-center mb-4">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-              <h2 className="text-lg font-semibold">Delete Report?</h2>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete this report for{" "}
-              <span className="font-semibold">{deleteTarget.patient.name}</span>?
-              This action cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setDeleteModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={deleteReportAction}>
-                Delete
-              </Button>
-            </div>
-
-          </Card>
-        </div>
-      )}
-
+      </div>
     </DashboardLayout>
   );
-}
+};
+
+export default LabUploadReport;

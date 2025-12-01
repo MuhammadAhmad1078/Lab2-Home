@@ -14,6 +14,10 @@ export interface IBooking extends Document {
     notes?: string;
     phlebotomist?: mongoose.Types.ObjectId;
     cancelReason?: string;
+    reportUrl?: string;
+    reportData?: Buffer;
+    reportContentType?: string;
+    reportUploadedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -80,6 +84,19 @@ const bookingSchema = new Schema<IBooking>(
         cancelReason: {
             type: String,
             trim: true,
+        },
+        reportUrl: {
+            type: String,
+            trim: true,
+        },
+        reportData: {
+            type: Buffer,
+        },
+        reportContentType: {
+            type: String,
+        },
+        reportUploadedAt: {
+            type: Date,
         },
     },
     {

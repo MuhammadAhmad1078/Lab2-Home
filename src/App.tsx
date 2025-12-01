@@ -25,6 +25,8 @@ import LabUploadReport from "./pages/LabUploadReport";
 import LabTestSelection from "./pages/LabTestSelection";
 const queryClient = new QueryClient();
 
+import { NotificationProvider } from "@/contexts/NotificationContext";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -33,95 +35,89 @@ const App = () => (
 
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* PUBLIC ROUTES */}
-            <Route path="/" element={<Index />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+          <NotificationProvider>
+            <Routes>
+              {/* PUBLIC ROUTES */}
+              <Route path="/" element={<Index />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* PATIENT ROUTES */}
-            <Route
-              path="/patient"
-              element={
-                <ProtectedRoute allowedRole="patient">
-                  <PatientDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patient/messages"
-              element={
-                <ProtectedRoute allowedRole="patient">
-                  <PatientMessages />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/patient/book-test" element={<BookTest />} />
+              {/* PATIENT ROUTES */}
+              <Route
+                path="/patient"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PatientDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/messages"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PatientMessages />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/patient/book-test" element={<BookTest />} />
 
-            {/* LAB ROUTES */}
-            <Route
-              path="/lab"
-              element={
-                <ProtectedRoute allowedRole="lab">
-                  <LabDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lab/messages"
-              element={
-                <ProtectedRoute allowedRole="lab">
-                  <LabMessages />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lab/appointments"
-              element={
-                <ProtectedRoute allowedRole="lab">
-                  <LabAppointments />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lab/reports"
-              element={
-                <ProtectedRoute allowedRole="lab">
-                  <LabUploadReport />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lab/test-selection"
-              element={
-                <ProtectedRoute allowedRole="lab">
-                  <LabTestSelection />
-                </ProtectedRoute>
-              }
-            />
+              {/* LAB ROUTES */}
+              <Route
+                path="/lab"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/messages"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabMessages />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/appointments"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabAppointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/reports"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabUploadReport />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/test-selection"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabTestSelection />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* PHLEBOTOMIST ROUTES */}
-            <Route
-              path="/phlebotomist"
-              element={
-                <ProtectedRoute allowedRole="phlebotomist">
-                  <PhlebotomistDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/phlebotomist/messages"
-              element={
-                <ProtectedRoute allowedRole="phlebotomist">
-                  <PhlebotomistMessages />
-                </ProtectedRoute>
-              }
-            />
+              {/* PHLEBOTOMIST ROUTES */}
+              <Route
+                path="/phlebotomist"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistMessages />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* 404 CATCH-ALL */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* 404 CATCH-ALL */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </NotificationProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
