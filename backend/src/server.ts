@@ -8,6 +8,7 @@ import phlebotomistRoutes from './routes/phlebotomist.routes';
 import testRoutes from './routes/test.routes';
 import bookingRoutes from './routes/booking.routes';
 import labRoutes from './routes/lab.routes';
+import notificationRoutes from './routes/notification.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 
 // Load environment variables
@@ -23,6 +24,10 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (uploads)
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // HTTP request logger with custom format
 if (process.env.NODE_ENV === 'development') {
@@ -50,6 +55,7 @@ app.use('/api/phlebotomist', phlebotomistRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error Handling Middleware
 app.use(notFound); // 404 handler

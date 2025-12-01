@@ -1,5 +1,5 @@
 // src/pages/LabAppointments.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 import {
   Calendar,
@@ -21,49 +23,30 @@ import {
   Trash2,
   Filter,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
-type AppointmentStatus = "Pending" | "Completed" | "Cancelled";
+type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
 
 interface Appointment {
-  id: string;
-  patientName: string;
-  patientId: string;
-  phone: string;
-  address: string;
-  test: string;
-  date: string;
-  time: string;
+  _id: string;
+  patient: {
+    _id: string;
+    fullName: string;
+    phone: string;
+    address: string;
+  };
+  test: {
+    name: string;
+  };
+  bookingDate: string;
+  preferredTimeSlot: string;
+  collectionType: string;
+  collectionAddress?: string;
   status: AppointmentStatus;
+  totalAmount: number;
   notes?: string;
 }
-
-const initialAppointments: Appointment[] = [
-  {
-    id: "APPT-00123",
-    patientName: "Ali Raza",
-    patientId: "001",
-    phone: "0301-1234567",
-    address: "Model Town, Lahore",
-    test: "Complete Blood Count (CBC)",
-    date: "2025-11-28",
-    time: "10:00 AM",
-    status: "Pending",
-    notes: "",
-  },
-  {
-    id: "APPT-00124",
-    patientName: "Sara Khan",
-    patientId: "002",
-    phone: "0322-8877665",
-    address: "Gulberg II, Lahore",
-    test: "Lipid Profile",
-    date: "2025-11-28",
-    time: "11:30 AM",
-    status: "Completed",
-    notes: "",
-  },
-];
 
 type Props = {
   insidePreview?: boolean;
@@ -71,8 +54,10 @@ type Props = {
 
 const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
   const Wrapper = (insidePreview ? React.Fragment : DashboardLayout) as React.ElementType;
+  const { user } = useAuth();
 
-  const [appointments, setAppointments] = useState(initialAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "All">("All");
 
@@ -80,36 +65,119 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
 
+  // Fetch appointments from API
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!user?.id) return;
+
+      try {
+        const token = localStorage.getItem('lab2home_token');
+        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setAppointments(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+        toast.error('Failed to load appointments');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [user?.id]);
+
   const totalAppointments = appointments.length;
-  const completedToday = appointments.filter((a) => a.status === "Completed").length;
-  const pendingCount = appointments.filter((a) => a.status === "Pending").length;
+  const completedToday = appointments.filter((a) => a.status === "completed").length;
+  const pendingCount = appointments.filter((a) => a.status === "pending").length;
 
   const filteredAppointments = appointments.filter((a) => {
     const term = search.toLowerCase().trim();
     const searchMatch =
       !term ||
-      a.patientId.toLowerCase().includes(term) ||
-      a.id.toLowerCase().includes(term);
+      a.patient.fullName.toLowerCase().includes(term) ||
+      a.test.name.toLowerCase().includes(term) ||
+      a.patient.phone.includes(term);
 
-    const statusMatch = statusFilter === "All" || a.status === statusFilter;
+    const statusMatch = statusFilter === "All"
+      ? a.status !== "completed"
+      : a.status === statusFilter;
 
     return searchMatch && statusMatch;
   });
 
-  const updateAppointment = (updated: Appointment) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === updated.id ? updated : a))
-    );
+  const updateAppointment = async (updated: Appointment) => {
+    try {
+      const token = localStorage.getItem('lab2home_token');
+      const response = await fetch(`http://localhost:5000/api/bookings/${updated._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: updated.status })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAppointments((prev) =>
+          prev.map((a) => (a._id === updated._id ? { ...a, status: updated.status } : a))
+        );
+        toast.success('Appointment status updated successfully');
+      } else {
+        toast.error(data.message || 'Failed to update appointment');
+      }
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast.error('Failed to update appointment');
+    }
   };
 
-  const deleteAppointment = (id: string) => {
-    setAppointments((prev) => prev.filter((a) => a.id !== id));
+  const deleteAppointment = async (id: string) => {
+    try {
+      const token = localStorage.getItem('lab2home_token');
+      const response = await fetch(`http://localhost:5000/api/bookings/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAppointments((prev) => prev.filter((a) => a._id !== id));
+        toast.success('Appointment cancelled successfully');
+      } else {
+        toast.error(data.message || 'Failed to cancel appointment');
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      toast.error('Failed to cancel appointment');
+    }
   };
+
+  if (loading) {
+    return (
+      <Wrapper role="lab">
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Wrapper>
+    );
+  }
 
   return (
     <Wrapper role="lab">
       <div className="w-full px-4 py-6 space-y-6">
-        
+
         {/* HEADER */}
         <h1 className="text-3xl font-bold">Appointments</h1>
         <p className="text-sm text-muted-foreground">
@@ -143,13 +211,13 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
           {/* APPOINTMENT CARD */}
           <Card className="p-5 shadow-sm border">
-            
+
             {/* FILTER BAR */}
             <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
               <div className="flex items-center gap-2 w-full md:w-1/2 border rounded-full px-3 bg-muted/40">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by Patient ID or Appointment ID..."
+                  placeholder="Search by patient name, test, or phone..."
                   className="border-none bg-transparent"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -164,88 +232,90 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                 className="text-xs px-3 py-1 border bg-background rounded-full"
               >
                 <option value="All">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
 
             {/* APPOINTMENTS LIST */}
             <div className="space-y-4">
-              {filteredAppointments.map((item) => (
-                <Card
-                  key={item.id}
-                  className="p-4 border shadow-sm hover:shadow-md transition"
-                >
-                  
-                  {/* TOP ROW */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
-                        {item.id}
-                      </span>
-                      <div>
-                        <p className="font-semibold flex items-center gap-2">
-                          <User className="h-4 w-4 text-primary" />
-                          {item.patientName}
-                          <span className="text-[11px] text-muted-foreground">
-                            (PID: {item.patientId})
-                          </span>
-                        </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          {item.test}
-                        </p>
+              {filteredAppointments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No appointments found.
+                </div>
+              ) : (
+                filteredAppointments.map((item) => (
+                  <Card
+                    key={item._id}
+                    className="p-4 border shadow-sm hover:shadow-md transition"
+                  >
+
+                    {/* TOP ROW */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="font-semibold flex items-center gap-2">
+                            <User className="h-4 w-4 text-primary" />
+                            {item.patient.fullName}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {item.test.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Badge
+                        className={
+                          item.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : item.status === "cancelled"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-700"
+                        }
+                      >
+                        {item.status}
+                      </Badge>
+                    </div>
+
+                    {/* DETAILS */}
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
+                      <div className="flex gap-2 items-center">
+                        <Phone className="h-3 w-3 text-primary" /> {item.patient.phone}
+                      </div>
+                      <div className="flex gap-2 items-center truncate">
+                        <MapPin className="h-3 w-3 text-primary" /> {item.collectionType === 'home' ? item.collectionAddress : item.patient.address}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Calendar className="h-3 w-3 text-primary" /> {new Date(item.bookingDate).toLocaleDateString()}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Clock className="h-3 w-3 text-primary" /> {item.preferredTimeSlot}
                       </div>
                     </div>
 
-                    <Badge
-                      className={
-                        item.status === "Completed"
-                          ? "bg-green-100 text-green-700"
-                          : item.status === "Cancelled"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-amber-100 text-amber-700"
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </div>
-
-                  {/* DETAILS */}
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
-                    <div className="flex gap-2 items-center">
-                      <Phone className="h-3 w-3 text-primary" /> {item.phone}
+                    {/* ACTIONS */}
+                    <div className="flex justify-end gap-2 mt-3">
+                      <Button variant="outline" size="sm" onClick={() => setViewing(item)}>
+                        <Eye className="h-3 w-3" /> View
+                      </Button>
+                      <Button size="sm" onClick={() => setEditing(item)}>
+                        <Pencil className="h-3 w-3" /> Edit Status
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleting(item)}
+                      >
+                        <Trash2 className="h-3 w-3" /> Cancel
+                      </Button>
                     </div>
-                    <div className="flex gap-2 items-center truncate">
-                      <MapPin className="h-3 w-3 text-primary" /> {item.address}
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <Calendar className="h-3 w-3 text-primary" /> {item.date}
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <Clock className="h-3 w-3 text-primary" /> {item.time}
-                    </div>
-                  </div>
-
-                  {/* ACTIONS */}
-                  <div className="flex justify-end gap-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={() => setViewing(item)}>
-                      <Eye className="h-3 w-3" /> View
-                    </Button>
-                    <Button size="sm" onClick={() => setEditing(item)}>
-                      <Pencil className="h-3 w-3" /> Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleting(item)}
-                    >
-                      <Trash2 className="h-3 w-3" /> Delete
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))
+              )}
             </div>
 
           </Card>
@@ -274,7 +344,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
         {viewing && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <Card className="w-[460px] bg-white p-6 rounded-xl shadow-xl">
-              
+
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Hash className="h-4 w-4 text-primary" />
@@ -286,13 +356,14 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
               </div>
 
               <div className="space-y-3 text-sm">
-                <p><strong>Patient:</strong> {viewing.patientName}</p>
-                <p><strong>Patient ID:</strong> {viewing.patientId}</p>
-                <p><strong>Test:</strong> {viewing.test}</p>
-                <p><strong>Date:</strong> {viewing.date}</p>
-                <p><strong>Time:</strong> {viewing.time}</p>
-                <p><strong>Phone:</strong> {viewing.phone}</p>
-                <p><strong>Address:</strong> {viewing.address}</p>
+                <p><strong>Patient:</strong> {viewing.patient.fullName}</p>
+                <p><strong>Test:</strong> {viewing.test.name}</p>
+                <p><strong>Date:</strong> {new Date(viewing.bookingDate).toLocaleDateString()}</p>
+                <p><strong>Time:</strong> {viewing.preferredTimeSlot}</p>
+                <p><strong>Phone:</strong> {viewing.patient.phone}</p>
+                <p><strong>Collection Type:</strong> {viewing.collectionType}</p>
+                <p><strong>Address:</strong> {viewing.collectionType === 'home' ? viewing.collectionAddress : viewing.patient.address}</p>
+                <p><strong>Total Amount:</strong> Rs. {viewing.totalAmount}</p>
                 {viewing.notes && (
                   <p><strong>Notes:</strong> {viewing.notes}</p>
                 )}
@@ -310,70 +381,26 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
         {/* EDIT MODAL */}
         {editing && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <Card className="w-[520px] bg-white p-6 rounded-xl shadow-xl">
+            <Card className="w-[420px] bg-white p-6 rounded-xl shadow-xl">
 
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Pencil className="h-4 w-4 text-primary" />
-                  Edit Appointment
+                  Update Status
                 </h2>
                 <Button variant="ghost" size="icon" onClick={() => setEditing(null)}>
                   ✕
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* READ-ONLY FIELDS */}
+              <div className="space-y-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">Patient Name</p>
-                  <Input value={editing.patientName} disabled />
+                  <p className="text-sm mb-2"><strong>Patient:</strong> {editing.patient.fullName}</p>
+                  <p className="text-sm mb-2"><strong>Test:</strong> {editing.test.name}</p>
                 </div>
 
                 <div>
-                  <p className="text-xs text-muted-foreground">Patient ID</p>
-                  <Input value={editing.patientId} disabled />
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <Input value={editing.phone} disabled />
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground">Address</p>
-                  <Input value={editing.address} disabled />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Test (Read-Only)</p>
-                  <Input value={editing.test} disabled />
-                </div>
-
-                {/* EDITABLE FIELDS NOW */}
-                <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <Input
-                    type="date"
-                    value={editing.date}
-                    onChange={(e) =>
-                      setEditing({ ...editing, date: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground">Time</p>
-                  <Input
-                    value={editing.time}
-                    onChange={(e) =>
-                      setEditing({ ...editing, time: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-xs text-muted-foreground mb-2">Status</p>
                   <select
                     value={editing.status}
                     onChange={(e) =>
@@ -382,25 +409,15 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                         status: e.target.value as AppointmentStatus,
                       })
                     }
-                    className="border rounded-md px-2 py-2 text-xs bg-background"
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
-
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Notes</p>
-                  <Input
-                    placeholder="Optional note..."
-                    value={editing.notes || ""}
-                    onChange={(e) =>
-                      setEditing({ ...editing, notes: e.target.value })
-                    }
-                  />
-                </div>
-
               </div>
 
               <div className="mt-6 flex justify-end gap-2">
@@ -425,27 +442,26 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
         {deleting && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <Card className="w-[380px] bg-white p-6 rounded-xl shadow-xl">
-              
-              <h2 className="text-lg font-semibold mb-2">Delete Appointment?</h2>
+
+              <h2 className="text-lg font-semibold mb-2">Cancel Appointment?</h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Are you sure you want to delete appointment{" "}
-                <strong>{deleting.id}</strong> for{" "}
-                <strong>{deleting.patientName}</strong>? This cannot be undone.
+                Are you sure you want to cancel appointment for{" "}
+                <strong>{deleting.patient.fullName}</strong>? This action cannot be undone.
               </p>
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setDeleting(null)}>
-                  Cancel
+                  No, Keep It
                 </Button>
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={() => {
-                    deleteAppointment(deleting.id);
+                    deleteAppointment(deleting._id);
                     setDeleting(null);
                   }}
                 >
-                  Delete
+                  Yes, Cancel
                 </Button>
               </div>
             </Card>

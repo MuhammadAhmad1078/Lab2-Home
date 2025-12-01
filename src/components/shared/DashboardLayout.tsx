@@ -9,7 +9,6 @@ import {
   FileText,
   ShoppingBag,
   MessageSquare,
-  Bell,
   Settings,
   LogOut,
   Activity,
@@ -17,6 +16,7 @@ import {
   Calendar,
   Building2
 } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -133,10 +133,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
           {/* Footer Actions */}
           <div className="space-y-1 border-t border-border p-4">
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
-              <Bell className="h-4 w-4" />
-              Notifications
-            </button>
+
             <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground">
               <Settings className="h-4 w-4" />
               Settings
@@ -153,8 +150,15 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 min-h-screen p-8">
-        {children}
+      <main className="ml-64 min-h-screen bg-gray-50/50">
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-4 border-b border-border bg-background/80 px-8 backdrop-blur">
+          <NotificationBell />
+        </header>
+
+        <div className="p-8">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -203,5 +203,58 @@ export const authAPI = {
   },
 };
 
-export default apiRequest;
+// Lab API functions
+export const updateLabTests = async (labId: string, testIds: string[]): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/labs/${labId}/tests`, {
+    method: 'PUT',
+    body: JSON.stringify({ testIds }),
+  });
+};
 
+// ============================================
+// NOTIFICATION APIs
+// ============================================
+
+export const getUserNotifications = async (userId: string, unreadOnly: boolean = false): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/notifications/${userId}?unreadOnly=${unreadOnly}`);
+};
+
+export const markNotificationAsRead = async (notificationId: string): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/notifications/${notificationId}/read`, {
+    method: 'PUT',
+  });
+};
+
+export const markAllNotificationsAsRead = async (userId: string): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/notifications/read-all`, {
+    method: 'PUT',
+    body: JSON.stringify({ userId }),
+  });
+};
+
+export const deleteNotification = async (notificationId: string): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/notifications/${notificationId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const uploadReport = async (bookingId: string, file: File): Promise<ApiResponse<any>> => {
+  const formData = new FormData();
+  formData.append('report', file);
+
+  const token = localStorage.getItem('lab2home_token');
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/upload-report`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return await response.json();
+};
+
+export default apiRequest;
