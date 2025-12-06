@@ -1,34 +1,27 @@
 import multer from 'multer';
-import path from 'path';
 
-// File filter
-const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedTypes = /pdf|jpg|jpeg|png/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+// Configure multer to store files in memory as Buffer
+const storage = multer.memoryStorage();
 
-  if (extname && mimetype) {
-    return cb(null, true);
+// File filter to allow only images and PDFs
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (
+    file.mimetype === 'image/jpeg' ||
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/webp' ||
+    file.mimetype === 'application/pdf'
+  ) {
+    cb(null, true);
   } else {
-    cb(new Error('Only PDF, JPG, JPEG and PNG files are allowed!'));
+    cb(new Error('Invalid file type. Only JPEG, PNG, WEBP and PDF are allowed.'));
   }
 };
 
-// Memory storage for both Reports and Phlebotomist signup
-const memoryStorage = multer.memoryStorage();
-
-export const uploadReport = multer({
-  storage: memoryStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: fileFilter
-});
-
+// Initialize multer
 export const upload = multer({
-  storage: memoryStorage,
+  storage: storage,
+  fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter: fileFilter
 });

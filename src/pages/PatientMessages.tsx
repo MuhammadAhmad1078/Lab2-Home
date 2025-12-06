@@ -10,59 +10,307 @@ import {
   TestTube,
   MessageSquare,
   CheckCheck,
+  Paperclip,
+  FileText,
+  Image as ImageIcon,
+  Check,
+  Download,
+  X
 } from "lucide-react";
+import { useSocket } from "@/contexts/SocketContext";
+import { chatService } from "@/services/chat.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { bookingService } from "@/services/booking.service";
 
-// message type
 type Message = {
-  from: "me" | "lab" | "phlebotomist" | "support";
-  text: string;
-  time: string;
-  read?: boolean;
+  _id: string;
+  conversation: string;
+  sender: "patient" | "lab";
+  content: string;
+  createdAt: string;
+  status: "sent" | "delivered" | "read";
+  attachments: {
+    _id?: string;
+    filename: string;
+    contentType: string;
+    size: number;
+  }[];
 };
 
-const recipientOptions = [
-  { id: "lab", label: "Lab Support" },
-  { id: "phlebotomist", label: "Phlebotomist" },
-  { id: "support", label: "Help / Support" },
-];
+type Conversation = {
+  _id: string;
+  patient: { _id: string; fullName: string; email: string };
+  lab: { _id: string; labName: string; email: string };
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: { patient: number; lab: number };
+};
+
+const MessageStatusIcon = ({ status }: { status: string }) => {
+  if (status === 'read') return <CheckCheck size={16} className="text-green-300" />;
+  if (status === 'delivered') return <CheckCheck size={16} className="text-white/70" />;
+  return <Check size={16} className="text-white/70" />;
+};
+
+// Component to render attachment previews (Images/PDFs)
+const AttachmentPreview = ({ messageId, attachment, index, token }: { messageId: string, attachment: any, index: number, token: string }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (attachment.contentType.startsWith('image/')) {
+      setLoading(true);
+      setError(false);
+      console.log(`Fetching image: msg=${messageId}, idx=${index}, type=${attachment.contentType}`);
+
+      chatService.fetchAttachmentBlob(messageId, index, token)
+        .then(blob => {
+          console.log(`Fetched blob: size=${blob.size}, type=${blob.type}`);
+          if (blob.size === 0) {
+            console.warn("Blob is empty!");
+            setError(true);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          setImageUrl(url);
+        })
+        .catch(err => {
+          console.error("Failed to load image", err);
+          setError(true);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [messageId, index, token, attachment.contentType]);
+
+  const handleDownload = async () => {
+    try {
+      const blob = await chatService.fetchAttachmentBlob(messageId, index, token);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Failed to download", err);
+    }
+  };
+
+  if (attachment.contentType.startsWith('image/')) {
+    return (
+      <div className="mb-2 relative group inline-block">
+        {loading ? (
+          <div className="w-48 h-48 bg-gray-200 animate-pulse rounded-md flex items-center justify-center">
+            <ImageIcon className="text-gray-400" />
+          </div>
+        ) : error ? (
+          <div className="w-48 h-48 bg-red-50 rounded-md flex flex-col items-center justify-center border border-red-200 text-red-500 p-2 text-center">
+            <ImageIcon className="mb-2" />
+            <span className="text-xs">Failed to load</span>
+          </div>
+        ) : (
+          imageUrl && (
+            <div className="relative">
+              <img
+                src={imageUrl}
+                alt={attachment.filename}
+                className="max-w-[250px] max-h-[250px] rounded-md object-cover cursor-pointer bg-gray-100"
+                onClick={() => window.open(imageUrl, '_blank')}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Download size={14} />
+              </button>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg mb-2 border hover:bg-muted transition-colors group max-w-xs">
+      <div className="p-2 bg-red-100 rounded text-red-600">
+        <FileText size={20} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{attachment.filename}</p>
+        <p className="text-xs text-muted-foreground">{(attachment.size / 1024).toFixed(1)} KB</p>
+      </div>
+      <button
+        onClick={handleDownload}
+        className="p-2 hover:bg-background rounded-full transition-colors"
+        title="Download"
+      >
+        <Download size={16} className="text-muted-foreground" />
+      </button>
+    </div>
+  );
+};
 
 const PatientMessages: React.FC = () => {
-  const [selectedChat, setSelectedChat] = useState("lab");
-
-  const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({
-    lab: [
-      { from: "me", text: "Hello, I want to confirm my test.", time: "09:01 AM", read: true },
-      { from: "lab", text: "Sure! Which test?", time: "09:03 AM" },
-    ],
-    phlebotomist: [
-      { from: "phlebotomist", text: "I will reach your address at 10 AM.", time: "08:30 AM" },
-      { from: "me", text: "Okay, thank you.", time: "08:31 AM", read: true },
-    ],
-    support: [
-      { from: "support", text: "How may we help you today?", time: "08:00 AM" },
-    ],
-  });
-
-  const messages = chatHistory[selectedChat];
+  const { socket } = useSocket();
+  const { token, user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [availableLabs, setAvailableLabs] = useState<{ _id: string; labName: string }[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-
+  const [files, setFiles] = useState<File[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch Conversations and Bookings
+  useEffect(() => {
+    if (token && user) {
+      // Fetch Conversations
+      chatService.getConversations(token).then((data) => {
+        if (data.success) {
+          setConversations(data.conversations);
+          if (data.conversations.length > 0 && !selectedChatId) {
+            setSelectedChatId(data.conversations[0]._id);
+            setSelectedLabId(data.conversations[0].lab._id);
+          }
+        }
+      });
+
+      // Fetch Bookings to find available labs
+      bookingService.getPatientBookings(user.id, token).then((data) => {
+        if (data.success) {
+          // Extract unique labs from bookings
+          const labs = new Map();
+          // API returns { success: true, data: [...] }
+          const bookings = data.data || [];
+          bookings.forEach((b: any) => {
+            if (b.lab) {
+              labs.set(b.lab._id, b.lab);
+            }
+          });
+          setAvailableLabs(Array.from(labs.values()));
+        }
+      });
+    }
+  }, [token, user]);
+
+  // Handle Chat Selection (Create if not exists)
+  const handleChatSelect = async (labId: string) => {
+    setSelectedLabId(labId);
+
+    // Check if conversation already exists
+    const existingConv = conversations.find(c => c.lab._id === labId);
+    if (existingConv) {
+      setSelectedChatId(existingConv._id);
+    } else {
+      // Create new conversation
+      if (token) {
+        try {
+          const data = await chatService.createConversation(labId, token);
+          if (data.success) {
+            setConversations(prev => [data.conversation, ...prev]);
+            setSelectedChatId(data.conversation._id);
+          }
+        } catch (err) {
+          console.error("Failed to create conversation", err);
+        }
+      }
+    }
+  };
+
+  // Fetch Messages & Join Room
+  useEffect(() => {
+    if (selectedChatId && token) {
+      chatService.getMessages(selectedChatId, token).then((data) => {
+        if (data.success) {
+          setMessages(data.messages);
+          chatService.markAsRead(selectedChatId, token);
+        }
+      });
+
+      if (socket) {
+        socket.emit("join_conversation", selectedChatId);
+      }
+    }
+  }, [selectedChatId, token, socket]);
+
+  // Socket Listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("new_message", (message: Message) => {
+      if (selectedChatId && message.conversation === selectedChatId) {
+        // Deduplicate based on _id
+        setMessages((prev) => {
+          if (prev.some(m => m._id === message._id)) return prev;
+          return [...prev, message];
+        });
+        if (token) chatService.markAsRead(selectedChatId, token);
+      }
+      setConversations(prev => prev.map(c =>
+        c._id === message.conversation
+          ? { ...c, lastMessage: message.content || 'Attachment', lastMessageAt: message.createdAt }
+          : c
+      ));
+    });
+
+    socket.on("messages_read", ({ conversationId }) => {
+      if (conversationId === selectedChatId) {
+        setMessages(prev => prev.map(m => ({ ...m, status: 'read' })));
+      }
+    });
+
+    return () => {
+      socket.off("new_message");
+      socket.off("messages_read");
+    };
+  }, [socket, selectedChatId, token]);
+
+  // Scroll to bottom
   useEffect(() => {
     chatRef.current?.scrollTo(0, chatRef.current.scrollHeight);
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = async () => {
+    if ((!input.trim() && files.length === 0) || !selectedChatId || !token) {
+      return;
+    }
 
-    setChatHistory(prev => ({
-      ...prev,
-      [selectedChat]: [
-        ...prev[selectedChat],
-        { from: "me", text: input.trim(), time: "Now" },
-      ],
-    }));
-    setInput("");
+    try {
+      const data = await chatService.sendMessage(selectedChatId, input, files, token);
+      if (data.success) {
+        // Optimistically add message if not already added by socket (socket is usually faster or simultaneous)
+        // But to be safe and instant:
+        setMessages((prev) => {
+          if (prev.some(m => m._id === data.message._id)) return prev;
+          return [...prev, data.message];
+        });
+        setInput("");
+        setFiles([]);
+        setErrorMessage(null);
+      } else {
+        setErrorMessage(data.message || "Failed to send message");
+        // Auto-hide after 5 seconds
+        setTimeout(() => setErrorMessage(null), 5000);
+      }
+    } catch (error) {
+      console.error("Failed to send message", error);
+      setErrorMessage("An unexpected error occurred.");
+    }
   };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const selectedConversation = conversations.find(c => c._id === selectedChatId);
 
   return (
     <DashboardLayout role="patient">
@@ -72,56 +320,117 @@ const PatientMessages: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Messages</h1>
           <p className="text-muted-foreground">
-            Chat with your lab and phlebotomist regarding your bookings.
+            Chat with your lab regarding your bookings.
           </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3 h-full">
 
           {/* CHAT PANEL */}
-          <Card className="lg:col-span-2 p-4 rounded-xl shadow-md bg-card flex flex-col">
+          <Card className="lg:col-span-2 p-4 rounded-xl shadow-md bg-card flex flex-col h-full overflow-hidden">
             {/* Top bar */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-primary" />
-                Chat with {recipientOptions.find(r => r.id === selectedChat)?.label}
+                {selectedChatId ? `Chat with ${conversations.find(c => c._id === selectedChatId)?.lab.labName}` : 'Select a Lab to Chat'}
               </h2>
 
               <select
-                value={selectedChat}
-                onChange={(e) => setSelectedChat(e.target.value)}
+                value={selectedLabId || ""}
+                onChange={(e) => handleChatSelect(e.target.value)}
                 className="border px-3 py-1 rounded-md text-sm"
               >
-                {recipientOptions.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label}</option>
+                <option value="" disabled>Select Lab</option>
+                {availableLabs.map((lab) => (
+                  <option key={lab._id} value={lab._id}>{lab.labName}</option>
                 ))}
               </select>
             </div>
 
             {/* Messages */}
             <div ref={chatRef} className="flex-1 overflow-y-auto bg-muted/30 rounded-lg border p-4 space-y-3">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-xs rounded-xl px-4 py-2 shadow-sm
-                    ${msg.from === "me"
-                      ? "bg-primary text-white rounded-br-none"
-                      : "bg-white border rounded-bl-none"}`}>
-                    <p>{msg.text}</p>
-                    <p className="text-[10px] opacity-70 mt-1 text-right">{msg.time}</p>
+              {messages.map((msg, i) => {
+                const isMe = msg.sender === 'patient';
+                return (
+                  <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-xl px-4 py-2 shadow-sm
+                        ${isMe
+                        ? "bg-primary text-white rounded-br-none"
+                        : "bg-white border rounded-bl-none"}`}>
+
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          {msg.attachments.map((att, idx) => (
+                            <AttachmentPreview
+                              key={idx}
+                              messageId={msg._id}
+                              attachment={att}
+                              index={idx}
+                              token={token!}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {msg.content && <p className="text-sm">{msg.content}</p>}
+
+                      <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? "text-white/70" : "text-muted-foreground"}`}>
+                        <p className="text-[10px]">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        {isMe && (
+                          <span className="ml-1">
+                            <MessageStatusIcon status={msg.status} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
+            {/* File Preview */}
+            {files.length > 0 && (
+              <div className="flex gap-2 p-2 bg-muted/20 text-xs overflow-x-auto">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-background border px-2 py-1 rounded-md whitespace-nowrap">
+                    <span className="truncate max-w-[100px]">{f.name}</span>
+                    <button onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-700">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="mt-2 p-2 bg-red-100 border border-red-200 text-red-600 rounded-md flex items-center justify-between text-sm">
+                <span>{errorMessage}</span>
+                <button onClick={() => setErrorMessage(null)} className="text-red-800 hover:text-red-900">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
             {/* Input */}
-            <div className="flex gap-3 mt-4 p-2 border bg-background rounded-xl">
+            <div className="flex gap-3 mt-4 p-2 border bg-background rounded-xl items-center">
+              <input
+                type="file"
+                multiple
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*,application/pdf"
+                onChange={handleFileSelect}
+              />
+              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+              </Button>
               <Input
                 placeholder="Type your message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                className="flex-1"
               />
-              <Button onClick={sendMessage}>
+              <Button onClick={sendMessage} disabled={!input.trim() && files.length === 0}>
                 <Send className="h-4 w-4 mr-1" /> Send
               </Button>
             </div>
@@ -135,8 +444,8 @@ const PatientMessages: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Active Chats</p>
-                  <p className="text-2xl font-bold mt-1">2 Chats</p>
-                  <p className="text-xs text-muted-foreground mt-1">You’re in touch with Lab & Phlebotomist</p>
+                  <p className="text-2xl font-bold mt-1">{conversations.length} Chats</p>
+                  <p className="text-xs text-muted-foreground mt-1">You’re in touch with Labs</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <MessageCircle className="h-6 w-6" />
