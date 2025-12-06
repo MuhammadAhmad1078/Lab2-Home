@@ -2,6 +2,8 @@ import express, { Application } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import connectDatabase from './config/database';
 import authRoutes from './routes/auth.routes';
 import phlebotomistRoutes from './routes/phlebotomist.routes';
@@ -9,13 +11,29 @@ import testRoutes from './routes/test.routes';
 import bookingRoutes from './routes/booking.routes';
 import labRoutes from './routes/lab.routes';
 import notificationRoutes from './routes/notification.routes';
+import chatRoutes from './routes/chat.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
+import { initializeSocket } from './socket/chat.socket';
+import { setIO } from './controllers/chat.controller';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Express app
 const app: Application = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.io
+const io = new Server(httpServer, {
+    cors: {
+        origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:5173', process.env.FRONTEND_URL || 'http://localhost:8080'],
+        credentials: true,
+    },
+});
+
+// Setup Socket.io
+initializeSocket(io);
+setIO(io);
 
 // Middleware
 app.use(cors({
@@ -56,6 +74,7 @@ app.use('/api/tests', testRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Error Handling Middleware
 app.use(notFound); // 404 handler
@@ -63,7 +82,7 @@ app.use(errorHandler); // Global error handler
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════╗
 ║                                           ║
@@ -95,6 +114,10 @@ app.listen(PORT, () => {
     console.log(`   POST /api/bookings (protected - patient)`);
     console.log(`   GET  /api/bookings/patient/:id (protected)`);
     console.log(`   GET  /api/bookings/lab/:id (protected)`);
+    console.log(`   POST /api/chat/conversation (protected)`);
+    console.log(`   GET  /api/chat/conversations (protected)`);
+    console.log(`   POST /api/chat/messages (protected)`);
+    console.log(`   GET  /api/chat/messages/:id (protected)`);
     console.log(`\n👀 Watching for requests...\n`);
 });
 

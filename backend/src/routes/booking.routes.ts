@@ -10,7 +10,7 @@ import {
     getReport,
 } from '../controllers/booking.controller';
 import { protect } from '../middleware/auth.middleware';
-import { uploadReport as uploadReportMiddleware } from '../middleware/upload.middleware';
+import { upload } from '../middleware/upload.middleware';
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.get('/lab/:labId', protect, getLabBookings);
 router.get('/:id', protect, getBookingById);
 router.put('/:id/status', protect, updateBookingStatus);
 router.delete('/:id', protect, cancelBooking);
-router.post('/:id/upload-report', protect, uploadReportMiddleware.single('report'), uploadReport);
+router.post('/:id/upload-report', protect, upload.single('report'), uploadReport);
 router.get('/:id/report', getReport); // Public route for viewing reports
 
 export default router;
