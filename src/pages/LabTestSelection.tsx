@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { TestTube, Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { TestTube, Save, CheckCircle2, AlertCircle, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Test {
@@ -30,6 +31,7 @@ const LabTestSelection = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch all available tests
     useEffect(() => {
@@ -131,6 +133,13 @@ const LabTestSelection = () => {
         }
     };
 
+    const filteredTests = tests.filter(test =>
+        test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        test.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const displayedCategories = [...new Set(filteredTests.map(t => t.category))];
+
     if (loading) {
         return (
             <DashboardLayout role="lab">
@@ -183,6 +192,17 @@ const LabTestSelection = () => {
                 </div>
             </motion.div>
 
+            {/* Search Bar */}
+            <div className="mb-6 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                    placeholder="Search tests by name or category..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                />
+            </div>
+
             {selectedTests.length === 0 && (
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -204,88 +224,94 @@ const LabTestSelection = () => {
             )}
 
             <div className="space-y-6">
-                {categories.map((category, index) => {
-                    const categoryTests = tests.filter(t => t.category === category);
-                    const selectedCount = categoryTests.filter(t => selectedTests.includes(t._id)).length;
-                    const allSelected = categoryTests.every(t => selectedTests.includes(t._id));
+                {displayedCategories.length > 0 ? (
+                    displayedCategories.map((category, index) => {
+                        const categoryTests = filteredTests.filter(t => t.category === category);
+                        const selectedCount = categoryTests.filter(t => selectedTests.includes(t._id)).length;
+                        const allSelected = categoryTests.every(t => selectedTests.includes(t._id));
 
-                    return (
-                        <motion.div
-                            key={category}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                        >
-                            <Card className="p-6 shadow-soft">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <TestTube className="h-5 w-5 text-primary" />
-                                        <h2 className="text-xl font-semibold text-foreground">{category}</h2>
-                                        <Badge variant="secondary">
-                                            {selectedCount}/{categoryTests.length} selected
-                                        </Badge>
+                        return (
+                            <motion.div
+                                key={category}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                            >
+                                <Card className="p-6 shadow-soft">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <TestTube className="h-5 w-5 text-primary" />
+                                            <h2 className="text-xl font-semibold text-foreground">{category}</h2>
+                                            <Badge variant="secondary">
+                                                {selectedCount}/{categoryTests.length} selected
+                                            </Badge>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleSelectAll(category)}
+                                        >
+                                            {allSelected ? 'Deselect All' : 'Select All'}
+                                        </Button>
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleSelectAll(category)}
-                                    >
-                                        {allSelected ? 'Deselect All' : 'Select All'}
-                                    </Button>
-                                </div>
 
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {categoryTests.map((test) => {
-                                        const isSelected = selectedTests.includes(test._id);
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        {categoryTests.map((test) => {
+                                            const isSelected = selectedTests.includes(test._id);
 
-                                        return (
-                                            <motion.div
-                                                key={test._id}
-                                                whileHover={{ scale: 1.02 }}
-                                                className={`
+                                            return (
+                                                <motion.div
+                                                    key={test._id}
+                                                    whileHover={{ scale: 1.02 }}
+                                                    className={`
                           flex items-start gap-3 p-4 rounded-lg border-2 transition-all cursor-pointer
                           ${isSelected
-                                                        ? 'border-primary bg-primary/5'
-                                                        : 'border-border hover:border-primary/40 bg-background'
-                                                    }
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-border hover:border-primary/40 bg-background'
+                                                        }
                         `}
-                                                onClick={() => handleToggleTest(test._id)}
-                                            >
-                                                <Checkbox
-                                                    checked={isSelected}
-                                                    onCheckedChange={() => handleToggleTest(test._id)}
-                                                    className="mt-1"
-                                                />
-                                                <div className="flex-1">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <h3 className="font-semibold text-foreground">{test.name}</h3>
-                                                        {isSelected && (
-                                                            <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                                                        )}
+                                                    onClick={() => handleToggleTest(test._id)}
+                                                >
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        onCheckedChange={() => handleToggleTest(test._id)}
+                                                        className="mt-1"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <h3 className="font-semibold text-foreground">{test.name}</h3>
+                                                            {isSelected && (
+                                                                <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            {test.description}
+                                                        </p>
+                                                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                                            <span className="font-medium text-primary">₹{test.basePrice}</span>
+                                                            <span>•</span>
+                                                            <span>{test.reportDeliveryTime}</span>
+                                                            {test.sampleType && (
+                                                                <>
+                                                                    <span>•</span>
+                                                                    <span>{test.sampleType}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        {test.description}
-                                                    </p>
-                                                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                                        <span className="font-medium text-primary">₹{test.basePrice}</span>
-                                                        <span>•</span>
-                                                        <span>{test.reportDeliveryTime}</span>
-                                                        {test.sampleType && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span>{test.sampleType}</span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            </Card>
-                        </motion.div>
-                    );
-                })}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </Card>
+                            </motion.div>
+                        );
+                    })
+                ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                        No tests found matching "{searchQuery}"
+                    </div>
+                )}
             </div>
 
             {selectedTests.length > 0 && (

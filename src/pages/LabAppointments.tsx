@@ -24,6 +24,7 @@ import {
   Filter,
   CheckCircle2,
   Loader2,
+  Mail
 } from "lucide-react";
 
 type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
@@ -33,6 +34,7 @@ interface Appointment {
   patient: {
     _id: string;
     fullName: string;
+    email: string;
     phone: string;
     address: string;
   };
@@ -103,7 +105,8 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
       !term ||
       a.patient.fullName.toLowerCase().includes(term) ||
       a.test.name.toLowerCase().includes(term) ||
-      a.patient.phone.includes(term);
+      a.patient.phone.includes(term) ||
+      (a.patient.email && a.patient.email.toLowerCase().includes(term));
 
     const statusMatch = statusFilter === "All"
       ? a.status !== "completed"
@@ -217,7 +220,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
               <div className="flex items-center gap-2 w-full md:w-1/2 border rounded-full px-3 bg-muted/40">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by patient name, test, or phone..."
+                  placeholder="Search by name, test, phone or email..."
                   className="border-none bg-transparent"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -357,6 +360,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
               <div className="space-y-3 text-sm">
                 <p><strong>Patient:</strong> {viewing.patient.fullName}</p>
+                <p><strong>Email:</strong> {viewing.patient.email}</p>
                 <p><strong>Test:</strong> {viewing.test.name}</p>
                 <p><strong>Date:</strong> {new Date(viewing.bookingDate).toLocaleDateString()}</p>
                 <p><strong>Time:</strong> {viewing.preferredTimeSlot}</p>

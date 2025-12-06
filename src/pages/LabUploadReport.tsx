@@ -21,6 +21,7 @@ interface Appointment {
   patient: {
     _id: string;
     fullName: string;
+    email: string;
     phone: string;
   };
   test: {
@@ -78,7 +79,8 @@ const LabUploadReport: React.FC = () => {
       !term ||
       a.patient.fullName.toLowerCase().includes(term) ||
       a.test.name.toLowerCase().includes(term) ||
-      a.patient.phone.includes(term)
+      a.patient.phone.includes(term) ||
+      (a.patient.email && a.patient.email.toLowerCase().includes(term))
     );
   });
 
@@ -138,7 +140,7 @@ const LabUploadReport: React.FC = () => {
         <div className="flex items-center gap-2 max-w-md border rounded-full px-3 bg-white shadow-sm">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search patient or test..."
+            placeholder="Search patient, email or test..."
             className="border-none bg-transparent focus-visible:ring-0"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
