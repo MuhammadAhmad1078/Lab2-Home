@@ -103,6 +103,7 @@ export const authAPI = {
     email: string;
     phone: string;
     dateOfBirth: string;
+    age?: number;
     address: string;
     password: string;
   }) => {
@@ -112,20 +113,40 @@ export const authAPI = {
     });
   },
 
-  // Lab signup
+  // Lab signup (with file upload)
   signupLab: async (data: {
     fullName: string;
     email: string;
     phone: string;
     labName: string;
-    licenseNumber: string;
+    licenseCopy: File;
     labAddress: string;
     password: string;
   }) => {
-    return apiRequest('/auth/signup/lab', {
+    // Use FormData for file upload
+    const formData = new FormData();
+    formData.append('fullName', data.fullName);
+    formData.append('email', data.email);
+    formData.append('phone', data.phone);
+    formData.append('labName', data.labName);
+    formData.append('licenseCopy', data.licenseCopy);
+    formData.append('labAddress', data.labAddress);
+    formData.append('password', data.password);
+
+    // Don't use apiRequest for file uploads - fetch directly
+    const token = localStorage.getItem('lab2home_token');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('http://localhost:5000/api/auth/signup/lab', {
       method: 'POST',
-      body: JSON.stringify(data),
+      headers,
+      body: formData, // Don't set Content-Type - browser will set it with boundary
     });
+
+    return await response.json();
   },
 
   // Verify OTP

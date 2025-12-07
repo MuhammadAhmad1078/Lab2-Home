@@ -80,6 +80,7 @@ const patientSchema = baseSchema.extend({
       today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
       return selectedDate <= today;
     }, "Date of birth cannot be in the future"),
+  age: z.number().optional(),
   address: z.string().min(5, "Please enter your address"),
 });
 
@@ -87,10 +88,13 @@ const patientSchema = baseSchema.extend({
 const labSchema = baseSchema.extend({
   role: z.literal("lab"),
   labName: z.string().min(2, "Please enter lab name"),
-  licenseNumber: z
-    .string()
-    .min(5, "Please enter your lab license number")
-    .regex(/^[A-Za-z0-9\-]+$/, "License number must be alphanumeric"),
+  licenseCopy: z
+    .instanceof(File, { message: "Please upload your lab license copy" })
+    .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
+    .refine(
+      (file) => file.type === "application/pdf",
+      "File must be a PDF document"
+    ),
   labAddress: z.string().min(5, "Please enter lab address"),
 });
 
@@ -250,22 +254,70 @@ const PatientForm = ({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="dateOfBirth"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              Date of Birth
-            </FormLabel>
-            <FormControl>
-              <Input type="date" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="dateOfBirth"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                Date of Birth
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  className="h-11"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    // Calculate age when date changes
+                    if (e.target.value) {
+                      const birthDate = new Date(e.target.value);
+                      const today = new Date();
+                      let age = today.getFullYear() - birthDate.getFullYear();
+                      const monthDiff = today.getMonth() - birthDate.getMonth();
+                      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                      }
+                      form.setValue("age", age >= 0 ? age : 0);
+                    } else {
+                      form.setValue("age", undefined);
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="age"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Age
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Auto-calculated"
+                  className="h-11 bg-muted"
+                  readOnly
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
 
       <FormField
         control={form.control}
@@ -378,6 +430,7 @@ const LabForm = ({
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -451,16 +504,44 @@ const LabForm = ({
 
       <FormField
         control={form.control}
-        name="licenseNumber"
-        render={({ field }) => (
+        name="licenseCopy"
+        render={({ field: { onChange, value, ...field } }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-primary" />
-              Lab License Number
+              <FileText className="w-4 h-4 text-primary" />
+              Lab License Copy
             </FormLabel>
             <FormControl>
-              <Input placeholder="LAB-XXXXX" className="h-11" {...field} />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        onChange(file);
+                      }
+                    }}
+                    {...field}
+                  />
+                </div>
+                {selectedFile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                    <FileText className="w-4 h-4" />
+                    <span className="flex-1 truncate">{selectedFile.name}</span>
+                    <span className="text-xs">
+                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  </div>
+                )}
+              </div>
             </FormControl>
+            <FormDescription className="text-xs">
+              Upload a clear copy of your lab license (PDF only, max 5MB)
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -830,12 +911,12 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
 
     switch (role) {
       case "patient":
-        return { ...base, dateOfBirth: "", address: "" };
+        return { ...base, dateOfBirth: "", age: undefined, address: "" };
       case "lab":
         return {
           ...base,
           labName: "",
-          licenseNumber: "",
+          licenseCopy: undefined as any,
           labAddress: "",
         };
       case "phlebotomist":
@@ -866,6 +947,7 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           email: data.email,
           phone: data.phone,
           dateOfBirth: (data as any).dateOfBirth,
+          age: (data as any).age,
           address: (data as any).address,
           password: data.password,
         });
@@ -877,7 +959,7 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           email: data.email,
           phone: data.phone,
           labName: (data as any).labName,
-          licenseNumber: (data as any).licenseNumber,
+          licenseCopy: (data as any).licenseCopy,
           labAddress: (data as any).labAddress,
           password: data.password,
         });

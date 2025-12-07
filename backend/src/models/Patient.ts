@@ -7,6 +7,7 @@ export interface IPatient extends Document {
   password: string;
   phone: string;
   dateOfBirth: Date;
+  age?: number;
   address: string;
   healthScore?: number;
   isVerified: boolean;
@@ -46,6 +47,11 @@ const patientSchema = new Schema<IPatient>(
       type: Date,
       required: [true, 'Date of birth is required'],
     },
+    age: {
+      type: Number,
+      min: 0,
+      max: 150,
+    },
     address: {
       type: String,
       required: [true, 'Address is required'],
@@ -76,7 +82,7 @@ patientSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);

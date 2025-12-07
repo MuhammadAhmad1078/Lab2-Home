@@ -16,7 +16,7 @@ const generateOTP = (): string => {
 // ============================================
 export const patientSignup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fullName, email, phone, dateOfBirth, address, password } = req.body;
+    const { fullName, email, phone, dateOfBirth, age, address, password } = req.body;
 
     // Validate required fields
     if (!fullName || !email || !phone || !dateOfBirth || !address || !password) {
@@ -43,6 +43,7 @@ export const patientSignup = async (req: Request, res: Response): Promise<void> 
       email: email.toLowerCase(),
       phone,
       dateOfBirth: new Date(dateOfBirth),
+      age,
       address,
       password,
       isVerified: false,
@@ -80,14 +81,23 @@ export const patientSignup = async (req: Request, res: Response): Promise<void> 
 };
 
 // ============================================
-// LAB SIGNUP (Step 1: Send OTP)
+// LAB SIGNUP (Step 1: Send OTP with License File Upload)
 // ============================================
 export const labSignup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fullName, email, phone, labName, licenseNumber, labAddress, password } = req.body;
+    const { fullName, email, phone, labName, labAddress, password } = req.body;
+
+    // Check if file was uploaded
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: 'License document is required',
+      });
+      return;
+    }
 
     // Validate required fields
-    if (!fullName || !email || !phone || !labName || !licenseNumber || !labAddress || !password) {
+    if (!fullName || !email || !phone || !labName || !labAddress || !password) {
       res.status(400).json({
         success: false,
         message: 'All fields are required',
@@ -105,29 +115,26 @@ export const labSignup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if license number already exists
-    const existingLicense = await Lab.findOne({ licenseNumber });
-    if (existingLicense) {
-      res.status(400).json({
-        success: false,
-        message: 'License number already registered',
-      });
-      return;
-    }
-
-    // Create new lab (unverified)
+    // Create new lab (unverified) with license file stored in MongoDB
     const lab = new Lab({
       fullName,
       email: email.toLowerCase(),
       phone,
       labName,
-      licenseNumber,
+      license: {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+        filename: req.file.originalname,
+        size: req.file.size,
+      },
       labAddress,
       password,
       isVerified: false,
     });
 
     await lab.save();
+
+    console.log(`✅ Lab created with license document stored in database (${req.file.size} bytes)`);
 
     // Generate and save OTP
     const otp = generateOTP();
@@ -614,7 +621,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
             phone: lab.phone,
             labName: lab.labName,
             labAddress: lab.labAddress,
-            licenseNumber: lab.licenseNumber,
             userType: 'lab',
           },
         },
@@ -857,7 +863,6 @@ export const labLogin = async (req: Request, res: Response): Promise<void> => {
           phone: lab.phone,
           labName: lab.labName,
           labAddress: lab.labAddress,
-          licenseNumber: lab.licenseNumber,
           userType: 'lab',
         },
       },
@@ -954,7 +959,6 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           phone: lab.phone,
           labName: lab.labName,
           labAddress: lab.labAddress,
-          licenseNumber: lab.licenseNumber,
           userType: 'lab',
         },
       });

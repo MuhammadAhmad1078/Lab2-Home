@@ -20,7 +20,7 @@ const router = Router();
 
 // Signup routes
 router.post('/signup/patient', patientSignup);
-router.post('/signup/lab', labSignup);
+router.post('/signup/lab', upload.single('licenseCopy'), labSignup);
 router.post('/signup/phlebotomist', upload.single('trafficLicenseCopy'), phlebotomistSignup);
 
 // OTP verification

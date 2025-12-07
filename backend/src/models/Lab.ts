@@ -7,7 +7,12 @@ export interface ILab extends Document {
   password: string;
   phone: string;
   labName: string;
-  licenseNumber: string;
+  license: {
+    data: Buffer;
+    contentType: string;
+    filename: string;
+    size: number;
+  };
   labAddress: string;
   operatingHours?: {
     open: string;
@@ -55,11 +60,23 @@ const labSchema = new Schema<ILab>(
       required: [true, 'Lab name is required'],
       trim: true,
     },
-    licenseNumber: {
-      type: String,
-      required: [true, 'License number is required'],
-      unique: true,
-      trim: true,
+    license: {
+      data: {
+        type: Buffer,
+        required: [true, 'License document is required'],
+      },
+      contentType: {
+        type: String,
+        required: true,
+      },
+      filename: {
+        type: String,
+        required: true,
+      },
+      size: {
+        type: Number,
+        required: true,
+      },
     },
     labAddress: {
       type: String,
