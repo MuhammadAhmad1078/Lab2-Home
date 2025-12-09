@@ -36,9 +36,11 @@ interface Appointment {
     phone: string;
     address: string;
   };
-  test: {
+  tests: Array<{
+    _id: string;
     name: string;
-  };
+    basePrice: number;
+  }>;
   bookingDate: string;
   preferredTimeSlot: string;
   collectionType: string;
@@ -99,10 +101,11 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
   const filteredAppointments = appointments.filter((a) => {
     const term = search.toLowerCase().trim();
+    const testNames = a.tests.map(t => t.name).join(' ').toLowerCase();
     const searchMatch =
       !term ||
       a.patient.fullName.toLowerCase().includes(term) ||
-      a.test.name.toLowerCase().includes(term) ||
+      testNames.includes(term) ||
       a.patient.phone.includes(term);
 
     const statusMatch = statusFilter === "All"
@@ -263,7 +266,9 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                           </p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <FileText className="h-3 w-3" />
-                            {item.test.name}
+                            {item.tests && item.tests.length > 0
+                              ? item.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                              : 'No tests'}
                           </p>
                         </div>
                       </div>
@@ -357,7 +362,9 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
               <div className="space-y-3 text-sm">
                 <p><strong>Patient:</strong> {viewing.patient.fullName}</p>
-                <p><strong>Test:</strong> {viewing.test.name}</p>
+                <p><strong>Tests:</strong> {viewing.tests && viewing.tests.length > 0
+                  ? viewing.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                  : 'No tests'}</p>
                 <p><strong>Date:</strong> {new Date(viewing.bookingDate).toLocaleDateString()}</p>
                 <p><strong>Time:</strong> {viewing.preferredTimeSlot}</p>
                 <p><strong>Phone:</strong> {viewing.patient.phone}</p>
@@ -396,7 +403,9 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm mb-2"><strong>Patient:</strong> {editing.patient.fullName}</p>
-                  <p className="text-sm mb-2"><strong>Test:</strong> {editing.test.name}</p>
+                  <p className="text-sm mb-2"><strong>Tests:</strong> {editing.tests && editing.tests.length > 0
+                    ? editing.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                    : 'No tests'}</p>
                 </div>
 
                 <div>

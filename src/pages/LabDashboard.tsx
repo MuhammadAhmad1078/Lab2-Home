@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Calendar,
@@ -15,7 +18,9 @@ import {
   CheckCircle2,
   XCircle,
   Upload,
-  Loader2
+  Loader2,
+  Settings,
+  Save
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,8 +40,11 @@ interface Booking {
 
 const LabDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeSlots, setTimeSlots] = useState<Array<{ time: string; isActive: boolean }>>([]);
+  const [savingSlots, setSavingSlots] = useState(false);
   const [stats, setStats] = useState({
     todayAppointments: 0,
     pendingReports: 0,
@@ -54,15 +62,21 @@ const LabDashboard = () => {
 
       try {
         const token = localStorage.getItem('lab2home_token');
-        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await response.json();
 
-        if (data.success) {
-          const allBookings = data.data;
+        // Fetch bookings
+        const bookingsResponse = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const bookingsData = await bookingsResponse.json();
+
+        // Fetch lab details including time slots
+        const labResponse = await fetch(`http://localhost:5000/api/labs/${user.id}/tests`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const labData = await labResponse.json();
+
+        if (bookingsData.success) {
+          const allBookings = bookingsData.data;
           setBookings(allBookings);
 
           // Calculate stats
@@ -88,6 +102,10 @@ const LabDashboard = () => {
             cancelledToday: todayBookings.filter((b: Booking) => b.status === 'cancelled').length,
           });
         }
+
+        if (labData.success && labData.data.timeSlots) {
+          setTimeSlots(labData.data.timeSlots);
+        }
       } catch (error) {
         console.error('Error fetching lab dashboard data:', error);
         toast.error('Failed to load dashboard data');
@@ -98,6 +116,42 @@ const LabDashboard = () => {
 
     fetchDashboardData();
   }, [user?.id]);
+
+  const handleToggleSlot = (index: number) => {
+    setTimeSlots(prev => prev.map((slot, i) =>
+      i === index ? { ...slot, isActive: !slot.isActive } : slot
+    ));
+  };
+
+  const handleSaveTimeSlots = async () => {
+    if (!user?.id) return;
+
+    setSavingSlots(true);
+    try {
+      const token = localStorage.getItem('lab2home_token');
+      const response = await fetch(`http://localhost:5000/api/labs/${user.id}/time-slots`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ timeSlots })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Time slots updated successfully!');
+      } else {
+        toast.error(data.message || 'Failed to update time slots');
+      }
+    } catch (error) {
+      console.error('Error saving time slots:', error);
+      toast.error('Failed to save time slots');
+    } finally {
+      setSavingSlots(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -210,7 +264,13 @@ const LabDashboard = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge variant="outline">Pending</Badge>
-                        <Button size="sm" variant="secondary">Process</Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => navigate('/lab/appointments')}
+                        >
+                          Process
+                        </Button>
                       </div>
                     </motion.div>
                   ))
@@ -335,6 +395,87 @@ const LabDashboard = () => {
                 </motion.div>
               ))
             )}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Time Slot Configuration */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="mt-6"
+      >
+        <Card className="border-border bg-card p-6 shadow-soft">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Time Slot Configuration</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Manage your available appointment slots</p>
+            </div>
+            <Button
+              onClick={handleSaveTimeSlots}
+              disabled={savingSlots || timeSlots.length === 0}
+              size="sm"
+            >
+              {savingSlots ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {timeSlots.length === 0 ? (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                No time slots configured
+              </div>
+            ) : (
+              timeSlots.map((slot, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 + index * 0.05 }}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-all ${slot.isActive
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/30'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock className={`h-4 w-4 ${slot.isActive ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
+                    <Label
+                      htmlFor={`slot-${index}`}
+                      className={`text-sm font-medium cursor-pointer ${slot.isActive ? 'text-foreground' : 'text-muted-foreground'
+                        }`}
+                    >
+                      {slot.time}
+                    </Label>
+                  </div>
+                  <Switch
+                    id={`slot-${index}`}
+                    checked={slot.isActive}
+                    onCheckedChange={() => handleToggleSlot(index)}
+                  />
+                </motion.div>
+              ))
+            )}
+          </div>
+
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              <strong>Note:</strong> Disabled slots will not be available for patients to book. Changes take effect immediately after saving.
+            </p>
           </div>
         </Card>
       </motion.div>

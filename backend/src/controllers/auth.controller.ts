@@ -30,6 +30,34 @@ export const patientSignup = async (req: Request, res: Response): Promise<void> 
     // Check if email already exists
     const existingPatient = await Patient.findOne({ email: email.toLowerCase() });
     if (existingPatient) {
+      // If account exists but is not verified, resend OTP
+      if (!existingPatient.isVerified) {
+        // Delete old OTP
+        await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'signup' });
+
+        // Generate new OTP
+        const otp = generateOTP();
+        await OTP.create({
+          email: email.toLowerCase(),
+          otp,
+          purpose: 'signup',
+        });
+
+        // Send OTP email
+        await sendOTPEmail(email, otp, existingPatient.fullName);
+
+        res.status(200).json({
+          success: true,
+          message: 'Account exists but not verified. New OTP sent to your email.',
+          data: {
+            email: email.toLowerCase(),
+            message: 'OTP sent to your email. Valid for 10 minutes.',
+          },
+        });
+        return;
+      }
+
+      // Account exists and is verified
       res.status(400).json({
         success: false,
         message: 'Email already registered',
@@ -108,6 +136,48 @@ export const labSignup = async (req: Request, res: Response): Promise<void> => {
     // Check if email already exists
     const existingLab = await Lab.findOne({ email: email.toLowerCase() });
     if (existingLab) {
+      // If account exists but is not verified, resend OTP
+      if (!existingLab.isVerified) {
+        // Update lab information with new data if provided
+        existingLab.fullName = fullName;
+        existingLab.phone = phone;
+        existingLab.labName = labName;
+        existingLab.labAddress = labAddress;
+        existingLab.password = password;
+        existingLab.license = {
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+          filename: req.file.originalname,
+          size: req.file.size,
+        };
+        await existingLab.save();
+
+        // Delete old OTP
+        await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'signup' });
+
+        // Generate new OTP
+        const otp = generateOTP();
+        await OTP.create({
+          email: email.toLowerCase(),
+          otp,
+          purpose: 'signup',
+        });
+
+        // Send OTP email
+        await sendOTPEmail(email, otp, existingLab.fullName);
+
+        res.status(200).json({
+          success: true,
+          message: 'Account exists but not verified. New OTP sent to your email.',
+          data: {
+            email: email.toLowerCase(),
+            message: 'OTP sent to your email. Valid for 10 minutes.',
+          },
+        });
+        return;
+      }
+
+      // Account exists and is verified
       res.status(400).json({
         success: false,
         message: 'Email already registered',
@@ -193,6 +263,47 @@ export const phlebotomistSignup = async (req: Request, res: Response): Promise<v
     // Check if email already exists
     const existingPhlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() });
     if (existingPhlebotomist) {
+      // If account exists but is not verified, resend OTP
+      if (!existingPhlebotomist.isVerified) {
+        // Update phlebotomist information with new data if provided
+        existingPhlebotomist.fullName = fullName;
+        existingPhlebotomist.phone = phone;
+        existingPhlebotomist.qualification = qualification;
+        existingPhlebotomist.password = password;
+        existingPhlebotomist.trafficLicense = {
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+          filename: req.file.originalname,
+          size: req.file.size,
+        };
+        await existingPhlebotomist.save();
+
+        // Delete old OTP
+        await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'signup' });
+
+        // Generate new OTP
+        const otp = generateOTP();
+        await OTP.create({
+          email: email.toLowerCase(),
+          otp,
+          purpose: 'signup',
+        });
+
+        // Send OTP email
+        await sendOTPEmail(email, otp, existingPhlebotomist.fullName);
+
+        res.status(200).json({
+          success: true,
+          message: 'Account exists but not verified. New OTP sent to your email.',
+          data: {
+            email: email.toLowerCase(),
+            message: 'OTP sent to your email. Valid for 10 minutes.',
+          },
+        });
+        return;
+      }
+
+      // Account exists and is verified
       res.status(400).json({
         success: false,
         message: 'Email already registered',
@@ -562,7 +673,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
             email: patient.email,
             phone: patient.phone,
             address: patient.address,
-            healthScore: patient.healthScore,
             userType: 'patient',
           },
         },
@@ -774,7 +884,6 @@ export const patientLogin = async (req: Request, res: Response): Promise<void> =
           email: patient.email,
           phone: patient.phone,
           address: patient.address,
-          healthScore: patient.healthScore,
           userType: 'patient',
         },
       },
@@ -936,7 +1045,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           phone: patient.phone,
           address: patient.address,
           dateOfBirth: patient.dateOfBirth,
-          healthScore: patient.healthScore,
+
           userType: 'patient',
         },
       });
@@ -1214,6 +1323,222 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({
       success: false,
       message: 'Failed to reset password',
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// REQUEST PASSWORD CHANGE OTP (For logged-in users)
+// ============================================
+export const requestPasswordChangeOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      });
+      return;
+    }
+
+    // Check if user exists in any collection
+    let user = await Patient.findOne({ email: email.toLowerCase() });
+    let userType = 'patient';
+    let userName = user?.fullName;
+
+    if (!user) {
+      user = await Lab.findOne({ email: email.toLowerCase() });
+      userType = 'lab';
+      userName = user?.fullName;
+    }
+
+    if (!user) {
+      user = await Phlebotomist.findOne({ email: email.toLowerCase() });
+      userType = 'phlebotomist';
+      userName = user?.fullName;
+    }
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    // Delete any existing password change OTPs
+    await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'password-change' });
+
+    // Generate new OTP
+    const otp = generateOTP();
+    await OTP.create({
+      email: email.toLowerCase(),
+      otp,
+      purpose: 'password-change',
+      userType,
+    });
+
+    // Send OTP email
+    await sendOTPEmail(email, otp, userName || 'User');
+
+    console.log(`✅ Password change OTP sent to ${email} (${userType})`);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email successfully',
+      data: {
+        email: email.toLowerCase(),
+      },
+    });
+  } catch (error: any) {
+    console.error('Request password change OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP',
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// VERIFY PASSWORD CHANGE OTP
+// ============================================
+export const verifyPasswordChangeOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required',
+      });
+      return;
+    }
+
+    // Find OTP record
+    const otpRecord = await OTP.findOne({
+      email: email.toLowerCase(),
+      otp,
+      purpose: 'password-change',
+    });
+
+    if (!otpRecord) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP',
+      });
+      return;
+    }
+
+    console.log(`✅ Password change OTP verified for ${email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+      data: {
+        email: email.toLowerCase(),
+      },
+    });
+  } catch (error: any) {
+    console.error('Verify password change OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify OTP',
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// CHANGE PASSWORD (With OTP verification)
+// ============================================
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'Email, OTP, and new password are required',
+      });
+      return;
+    }
+
+    // Validate password length
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long',
+      });
+      return;
+    }
+
+    // Find and verify OTP
+    const otpRecord = await OTP.findOne({
+      email: email.toLowerCase(),
+      otp,
+      purpose: 'password-change',
+    });
+
+    if (!otpRecord) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP',
+      });
+      return;
+    }
+
+    const userType = otpRecord.userType;
+    let user: any = null;
+
+    // Find user and update password
+    if (userType === 'patient') {
+      user = await Patient.findOne({ email: email.toLowerCase() });
+      if (user) {
+        user.password = newPassword;
+        await user.save();
+      }
+    } else if (userType === 'lab') {
+      user = await Lab.findOne({ email: email.toLowerCase() });
+      if (user) {
+        user.password = newPassword;
+        await user.save();
+      }
+    } else if (userType === 'phlebotomist') {
+      user = await Phlebotomist.findOne({ email: email.toLowerCase() });
+      if (user) {
+        user.password = newPassword;
+        await user.save();
+      }
+    }
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    // Delete the OTP after successful password change
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    console.log(`✅ Password changed successfully for ${email} (${userType})`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully!',
+      data: {
+        email: email.toLowerCase(),
+      },
+    });
+  } catch (error: any) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
       error: error.message,
     });
   }

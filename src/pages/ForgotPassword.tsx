@@ -467,7 +467,7 @@ export default function ForgotPassword() {
                                                                     onClick={() => setShowPassword((prev) => !prev)}
                                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                                                                 >
-                                                                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                                                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                                 </button>
                                                             </div>
                                                         </FormControl>
@@ -501,7 +501,7 @@ export default function ForgotPassword() {
                                                                     onClick={() => setShowConfirmPassword((prev) => !prev)}
                                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                                                                 >
-                                                                    {showConfirmPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                                                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                                 </button>
                                                             </div>
                                                         </FormControl>

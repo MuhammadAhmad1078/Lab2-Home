@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IBooking extends Document {
     patient: mongoose.Types.ObjectId;
     lab: mongoose.Types.ObjectId;
-    test: mongoose.Types.ObjectId;
+    tests: mongoose.Types.ObjectId[]; // Changed from single test to array of tests
     bookingDate: Date;
     preferredTimeSlot: string;
     collectionType: 'home' | 'lab';
@@ -34,11 +34,11 @@ const bookingSchema = new Schema<IBooking>(
             ref: 'Lab',
             required: [true, 'Lab reference is required'],
         },
-        test: {
+        tests: [{
             type: Schema.Types.ObjectId,
             ref: 'Test',
-            required: [true, 'Test reference is required'],
-        },
+            required: true,
+        }],
         bookingDate: {
             type: Date,
             required: [true, 'Booking date is required'],

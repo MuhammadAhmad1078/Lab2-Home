@@ -9,7 +9,6 @@ export interface IPatient extends Document {
   dateOfBirth: Date;
   age?: number;
   address: string;
-  healthScore?: number;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -56,12 +55,6 @@ const patientSchema = new Schema<IPatient>(
       type: String,
       required: [true, 'Address is required'],
       trim: true,
-    },
-    healthScore: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
     },
     isVerified: {
       type: Boolean,

@@ -3,7 +3,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IOTP extends Document {
   email: string;
   otp: string;
-  purpose: 'signup' | 'reset-password';
+  purpose: 'signup' | 'reset-password' | 'password-change';
+  userType?: string;
   expiresAt: Date;
   createdAt: Date;
 }
@@ -22,8 +23,12 @@ const otpSchema = new Schema<IOTP>(
     },
     purpose: {
       type: String,
-      enum: ['signup', 'reset-password'],
+      enum: ['signup', 'reset-password', 'password-change'],
       required: true,
+    },
+    userType: {
+      type: String,
+      required: false,
     },
     expiresAt: {
       type: Date,

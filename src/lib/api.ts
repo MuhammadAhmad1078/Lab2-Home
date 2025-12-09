@@ -259,6 +259,38 @@ export const deleteNotification = async (notificationId: string): Promise<ApiRes
   });
 };
 
+// ============================================
+// LAB APIs
+// ============================================
+
+export const fetchAvailableLabs = async (): Promise<ApiResponse<any>> => {
+  return apiRequest<any>('/labs/available');
+};
+
+export const fetchLabById = async (labId: string): Promise<ApiResponse<any>> => {
+  return apiRequest<any>(`/labs/${labId}`);
+};
+
+// ============================================
+// BOOKING APIs
+// ============================================
+
+export const createBooking = async (bookingData: {
+  patient: string;
+  lab: string;
+  tests: string[];
+  bookingDate: string;
+  preferredTimeSlot: string;
+  collectionType: 'home' | 'lab';
+  collectionAddress?: string;
+  notes?: string;
+}): Promise<ApiResponse<any>> => {
+  return apiRequest<any>('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(bookingData),
+  });
+};
+
 export const uploadReport = async (bookingId: string, file: File): Promise<ApiResponse<any>> => {
   const formData = new FormData();
   formData.append('report', file);

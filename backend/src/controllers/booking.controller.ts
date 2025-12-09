@@ -9,13 +9,13 @@ import Patient from '../models/Patient';
 // ============================================
 export const createBooking = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { patient, lab, test, bookingDate, preferredTimeSlot, collectionType, collectionAddress, notes } = req.body;
+        const { patient, lab, tests, bookingDate, preferredTimeSlot, collectionType, collectionAddress, notes } = req.body;
 
         // Validate required fields
-        if (!patient || !lab || !test || !bookingDate || !preferredTimeSlot || !collectionType) {
+        if (!patient || !lab || !tests || !Array.isArray(tests) || tests.length === 0 || !bookingDate || !preferredTimeSlot || !collectionType) {
             res.status(400).json({
                 success: false,
-                message: 'Patient, lab, test, booking date, time slot, and collection type are required',
+                message: 'Patient, lab, tests (array), booking date, time slot, and collection type are required',
             });
             return;
         }
@@ -29,17 +29,20 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Verify test exists
-        const testDoc = await Test.findById(test);
-        if (!testDoc) {
+        // Verify all tests exist and calculate total amount
+        const testDocs = await Test.find({ _id: { $in: tests } });
+        if (testDocs.length !== tests.length) {
             res.status(404).json({
                 success: false,
-                message: 'Test not found',
+                message: 'One or more tests not found',
             });
             return;
         }
 
-        // Verify lab exists and has this test available
+        // Calculate total amount from all tests
+        const totalAmount = testDocs.reduce((sum, test) => sum + test.basePrice, 0);
+
+        // Verify lab exists and has all these tests available
         const labDoc = await Lab.findById(lab);
         if (!labDoc) {
             res.status(404).json({
@@ -58,12 +61,13 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Check if lab offers this test
-        const hasTest = labDoc.availableTests.some(t => t.toString() === test);
-        if (!hasTest) {
+        // Check if lab offers all selected tests
+        const labTestIds = labDoc.availableTests.map(t => t.toString());
+        const allTestsAvailable = tests.every(testId => labTestIds.includes(testId));
+        if (!allTestsAvailable) {
             res.status(400).json({
                 success: false,
-                message: 'This lab does not offer the selected test',
+                message: 'This lab does not offer one or more of the selected tests',
             });
             return;
         }
@@ -82,12 +86,12 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
         const booking = new Booking({
             patient,
             lab,
-            test,
+            tests,
             bookingDate: new Date(bookingDate),
             preferredTimeSlot,
             collectionType,
             collectionAddress: collectionType === 'home' ? collectionAddress : undefined,
-            totalAmount: testDoc.basePrice,
+            totalAmount,
             notes,
             status: 'pending',
             paymentStatus: 'pending',
@@ -99,7 +103,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
         await booking.populate([
             { path: 'patient', select: 'fullName email phone address' },
             { path: 'lab', select: 'labName email phone labAddress' },
-            { path: 'test', select: 'name description category basePrice reportDeliveryTime' },
+            { path: 'tests', select: 'name description category basePrice reportDeliveryTime' },
         ]);
 
         // Send notifications to Lab (Email + In-App)
@@ -107,13 +111,15 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
             const { sendNewBookingEmail } = await import('../services/email.service');
             const { createNotification } = await import('./notification.controller');
 
+            const testNames = (booking.tests as any[]).map(t => t.name).join(', ');
+
             // 1. Send Email to Lab
             if ((booking.lab as any).email) {
                 await sendNewBookingEmail(
                     (booking.lab as any).email,
                     (booking.lab as any).labName,
                     (booking.patient as any).fullName,
-                    (booking.test as any).name,
+                    testNames,
                     new Date(booking.bookingDate).toLocaleDateString(),
                     booking.preferredTimeSlot
                 );
@@ -126,11 +132,11 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
                 userType: 'lab',
                 type: 'booking_created',
                 title: 'New Booking 📅',
-                message: `You have a new booking for ${(booking.test as any).name} from ${(booking.patient as any).fullName}.`,
+                message: `You have a new booking for ${testNames} from ${(booking.patient as any).fullName}.`,
                 relatedBooking: booking._id.toString(),
                 metadata: {
                     patientName: (booking.patient as any).fullName,
-                    testName: (booking.test as any).name,
+                    testNames,
                     bookingDate: booking.bookingDate,
                     timeSlot: booking.preferredTimeSlot
                 }
@@ -172,7 +178,7 @@ export const getPatientBookings = async (req: Request, res: Response): Promise<v
 
         const bookings = await Booking.find(query)
             .populate('lab', 'labName email phone labAddress')
-            .populate('test', 'name description category basePrice reportDeliveryTime')
+            .populate('tests', 'name description category basePrice reportDeliveryTime')
             .populate('phlebotomist', 'fullName phone')
             .sort({ createdAt: -1 });
 
@@ -212,7 +218,7 @@ export const getLabBookings = async (req: Request, res: Response): Promise<void>
 
         const bookings = await Booking.find(query)
             .populate('patient', 'fullName email phone address')
-            .populate('test', 'name description category basePrice reportDeliveryTime')
+            .populate('tests', 'name description category basePrice reportDeliveryTime')
             .populate('phlebotomist', 'fullName phone')
             .sort({ bookingDate: 1, preferredTimeSlot: 1 });
 
@@ -241,7 +247,7 @@ export const getBookingById = async (req: Request, res: Response): Promise<void>
         const booking = await Booking.findById(id)
             .populate('patient', 'fullName email phone address')
             .populate('lab', 'labName email phone labAddress')
-            .populate('test', 'name description category basePrice reportDeliveryTime preparationInstructions')
+            .populate('tests', 'name description category basePrice reportDeliveryTime preparationInstructions')
             .populate('phlebotomist', 'fullName phone qualification');
 
         if (!booking) {
@@ -305,7 +311,7 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
         await booking.populate([
             { path: 'patient', select: 'fullName email phone' },
             { path: 'lab', select: 'labName email phone' },
-            { path: 'test', select: 'name description' },
+            { path: 'tests', select: 'name description' },
             { path: 'phlebotomist', select: 'fullName phone' },
         ]);
 
@@ -315,11 +321,13 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
                 const { sendBookingStatusUpdateEmail } = await import('../services/email.service');
                 const { createNotification } = await import('./notification.controller');
 
+                const testNames = (booking.tests as any[]).map(t => t.name).join(', ');
+
                 // Send email notification
                 await sendBookingStatusUpdateEmail(
                     (booking.patient as any).email,
                     (booking.patient as any).fullName,
-                    (booking.test as any).name,
+                    testNames,
                     status,
                     new Date(booking.bookingDate).toLocaleDateString('en-US', {
                         weekday: 'long',
@@ -337,19 +345,19 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
                 const statusMessages: Record<string, { title: string; message: string }> = {
                     confirmed: {
                         title: 'Booking Confirmed ✅',
-                        message: `Your ${(booking.test as any).name} test has been confirmed by ${(booking.lab as any).labName}.`
+                        message: `Your ${testNames} test(s) has been confirmed by ${(booking.lab as any).labName}.`
                     },
                     'in-progress': {
                         title: 'Sample Collection In Progress 🔬',
-                        message: `Your sample for ${(booking.test as any).name} is being collected.`
+                        message: `Your sample for ${testNames} is being collected.`
                     },
                     completed: {
                         title: 'Test Completed ✨',
-                        message: `Your ${(booking.test as any).name} test has been completed! Report will be available soon.`
+                        message: `Your ${testNames} test(s) has been completed! Report will be available soon.`
                     },
                     cancelled: {
                         title: 'Booking Cancelled ❌',
-                        message: `Your ${(booking.test as any).name} test booking has been cancelled.`
+                        message: `Your ${testNames} test booking has been cancelled.`
                     }
                 };
 
@@ -368,7 +376,7 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
                     metadata: {
                         oldStatus,
                         newStatus: status,
-                        testName: (booking.test as any).name,
+                        testNames,
                         labName: (booking.lab as any).labName,
                     }
                 });
@@ -492,7 +500,7 @@ export const uploadReport = async (req: Request, res: Response): Promise<void> =
         await booking.populate([
             { path: 'patient', select: 'fullName email phone' },
             { path: 'lab', select: 'labName email phone' },
-            { path: 'test', select: 'name description' },
+            { path: 'tests', select: 'name description' },
         ]);
 
         // Send notifications
@@ -501,11 +509,13 @@ export const uploadReport = async (req: Request, res: Response): Promise<void> =
                 const { sendReportUploadedEmail } = await import('../services/email.service');
                 const { createNotification } = await import('./notification.controller');
 
+                const testNames = (booking.tests as any[]).map(t => t.name).join(', ');
+
                 // Send email
                 await sendReportUploadedEmail(
                     (booking.patient as any).email,
                     (booking.patient as any).fullName,
-                    (booking.test as any).name,
+                    testNames,
                     reportUrl,
                     (booking.lab as any).labName
                 );
@@ -516,11 +526,11 @@ export const uploadReport = async (req: Request, res: Response): Promise<void> =
                     userType: 'patient',
                     type: 'report_uploaded',
                     title: 'Report Ready 📄',
-                    message: `Your report for ${(booking.test as any).name} is ready for download.`,
+                    message: `Your report for ${testNames} is ready for download.`,
                     relatedBooking: booking._id.toString(),
                     metadata: {
                         reportUrl,
-                        testName: (booking.test as any).name,
+                        testNames,
                         labName: (booking.lab as any).labName,
                     }
                 });

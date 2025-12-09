@@ -18,6 +18,10 @@ export interface ILab extends Document {
     open: string;
     close: string;
   };
+  timeSlots?: Array<{
+    time: string;
+    isActive: boolean;
+  }>;
   testTypes?: string[];
   availableTests: mongoose.Types.ObjectId[]; // References to Test model
   hasConfiguredTests: boolean;
@@ -86,6 +90,22 @@ const labSchema = new Schema<ILab>(
     operatingHours: {
       open: { type: String, default: '09:00' },
       close: { type: String, default: '18:00' },
+    },
+    timeSlots: {
+      type: [
+        {
+          time: { type: String, required: true },
+          isActive: { type: Boolean, default: true },
+        },
+      ],
+      default: [
+        { time: '08:00 AM - 10:00 AM', isActive: true },
+        { time: '10:00 AM - 12:00 PM', isActive: true },
+        { time: '12:00 PM - 02:00 PM', isActive: false },
+        { time: '02:00 PM - 04:00 PM', isActive: true },
+        { time: '04:00 PM - 06:00 PM', isActive: true },
+        { time: '06:00 PM - 08:00 PM', isActive: true },
+      ],
     },
     testTypes: {
       type: [String],

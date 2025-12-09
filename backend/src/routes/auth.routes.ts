@@ -12,6 +12,9 @@ import {
   forgotPassword,
   verifyResetOTP,
   resetPassword,
+  requestPasswordChangeOTP,
+  verifyPasswordChangeOTP,
+  changePassword,
 } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -36,6 +39,11 @@ router.post('/login/lab', labLogin); // Legacy support
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-reset-otp', verifyResetOTP);
 router.post('/reset-password', resetPassword);
+
+// Password change routes (for logged-in users)
+router.post('/request-password-change-otp', requestPasswordChangeOTP);
+router.post('/verify-password-change-otp', verifyPasswordChangeOTP);
+router.post('/change-password', changePassword);
 
 // Get current user (protected route)
 router.get('/me', authenticateToken, getMe);

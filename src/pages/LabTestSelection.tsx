@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { TestTube, Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { TestTube, Save, CheckCircle2, AlertCircle, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Test {
@@ -30,6 +31,7 @@ const LabTestSelection = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch all available tests
     useEffect(() => {
@@ -203,9 +205,36 @@ const LabTestSelection = () => {
                 </motion.div>
             )}
 
+            {/* Search Bar */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-6"
+            >
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Search tests by name or description..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 rounded-xl border-border bg-muted/50"
+                    />
+                </div>
+            </motion.div>
+
             <div className="space-y-6">
                 {categories.map((category, index) => {
-                    const categoryTests = tests.filter(t => t.category === category);
+                    const categoryTests = tests.filter(t => {
+                        const matchesCategory = t.category === category;
+                        const matchesSearch = !searchQuery ||
+                            t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            t.description.toLowerCase().includes(searchQuery.toLowerCase());
+                        return matchesCategory && matchesSearch;
+                    });
+
+                    // Skip category if no tests match search
+                    if (categoryTests.length === 0) return null;
+
                     const selectedCount = categoryTests.filter(t => selectedTests.includes(t._id)).length;
                     const allSelected = categoryTests.every(t => selectedTests.includes(t._id));
 

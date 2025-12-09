@@ -23,9 +23,11 @@ interface Appointment {
     fullName: string;
     phone: string;
   };
-  test: {
+  tests: Array<{
+    _id: string;
     name: string;
-  };
+    basePrice: number;
+  }>;
   bookingDate: string;
   status: string;
   reportUrl?: string;
@@ -74,10 +76,11 @@ const LabUploadReport: React.FC = () => {
 
   const filteredAppointments = appointments.filter((a) => {
     const term = search.toLowerCase().trim();
+    const testNames = a.tests.map(t => t.name).join(' ').toLowerCase();
     return (
       !term ||
       a.patient.fullName.toLowerCase().includes(term) ||
-      a.test.name.toLowerCase().includes(term) ||
+      testNames.includes(term) ||
       a.patient.phone.includes(term)
     );
   });
@@ -171,7 +174,11 @@ const LabUploadReport: React.FC = () => {
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{item.test.name}</span>
+                    <span className="font-medium">
+                      {item.tests && item.tests.length > 0
+                        ? item.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                        : 'No tests'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
@@ -199,7 +206,9 @@ const LabUploadReport: React.FC = () => {
               <div className="space-y-4 mb-6">
                 <div className="bg-muted/30 p-3 rounded-lg text-sm">
                   <p><strong>Patient:</strong> {selectedBooking.patient.fullName}</p>
-                  <p><strong>Test:</strong> {selectedBooking.test.name}</p>
+                  <p><strong>Tests:</strong> {selectedBooking.tests && selectedBooking.tests.length > 0
+                    ? selectedBooking.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                    : 'No tests'}</p>
                 </div>
 
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">

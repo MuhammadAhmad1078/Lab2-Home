@@ -11,20 +11,23 @@ import {
   Clock,
   Calendar,
   TrendingUp,
-  AlertCircle,
   Pill,
   Heart,
-  Loader2
+  Loader2,
+  Sparkles,
+  Lightbulb
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Booking {
   _id: string;
-  test: {
+  tests: Array<{
+    _id: string;
     name: string;
     category: string;
-  };
+    basePrice: number;
+  }>;
   lab: {
     labName: string;
   };
@@ -45,6 +48,30 @@ const PatientDashboard = () => {
     pending: 0,
     upcoming: 0
   });
+
+  // Daily Health Tips
+  const healthTips = [
+    "Drink at least 8 glasses of water daily to stay hydrated.",
+    "Walking 30 minutes a day can improve heart health significantly.",
+    "Get 7-8 hours of sleep to boost your immune system.",
+    "Eat more leafy greens to improve your iron levels naturally.",
+    "Limit sugar intake to reduce the risk of chronic diseases.",
+    "Regular health checkups can catch potential issues early.",
+    "Practice deep breathing exercises to reduce stress levels."
+  ];
+
+  const [dailyTip, setDailyTip] = useState("");
+
+  useEffect(() => {
+    // Select a tip based on the current date so it stays the same for the whole day
+    const dateString = new Date().toDateString();
+    let hash = 0;
+    for (let i = 0; i < dateString.length; i++) {
+      hash = dateString.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % healthTips.length;
+    setDailyTip(healthTips[index]);
+  }, []);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -179,7 +206,11 @@ const PatientDashboard = () => {
                         <TestTube className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground">{booking.test?.name || 'Unknown Test'}</p>
+                        <p className="font-semibold text-foreground">
+                          {booking.tests && booking.tests.length > 0
+                            ? booking.tests.map(t => t?.name || 'Unknown Test').join(', ')
+                            : 'Unknown Test'}
+                        </p>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {new Date(booking.bookingDate).toLocaleDateString()} at {booking.preferredTimeSlot}
@@ -209,28 +240,21 @@ const PatientDashboard = () => {
           transition={{ delay: 0.4 }}
           className="space-y-6"
         >
-          <Card className="border-border bg-card p-6 shadow-soft">
-            <div className="mb-4 flex items-center gap-2">
-              <Heart className="h-5 w-5 text-destructive" />
-              <h3 className="font-semibold text-foreground">Health Score</h3>
-            </div>
-            <div className="mb-4">
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold text-foreground">--</span>
-                <span className="mb-1 text-sm text-muted-foreground">/100</span>
+          {/* Daily Health Tip */}
+          <Card className="border-border bg-gradient-to-br from-primary/5 to-secondary/5 p-6 shadow-soft border-l-4 border-l-primary">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="p-2 bg-background rounded-full shadow-sm">
+                <Lightbulb className="h-5 w-5 text-warning" />
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "0%" }}
-                  transition={{ delay: 0.6, duration: 0.8 }}
-                  className="h-full bg-gradient-to-r from-secondary to-primary"
-                />
-              </div>
+              <h3 className="font-semibold text-foreground">Health Tip of the Day</h3>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Complete more tests to generate your health score.
+            <p className="text-sm font-medium text-foreground italic">
+              "{dailyTip}"
             </p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-secondary" />
+              <span>Small changes make a big difference!</span>
+            </div>
           </Card>
 
           <Card className="border-border bg-card p-6 shadow-soft">

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Lab from '../models/Lab';
 import Test from '../models/Test';
+import Booking from '../models/Booking';
 
 // ============================================
 // GET AVAILABLE LABS (Labs that have configured tests)
@@ -22,7 +23,7 @@ export const getAvailableLabs = async (req: Request, res: Response): Promise<voi
 
         const labs = await Lab.find(query)
             .populate('availableTests', 'name category basePrice reportDeliveryTime')
-            .select('labName email phone labAddress operatingHours availableTests')
+            .select('labName email phone labAddress operatingHours availableTests timeSlots')
             .sort({ labName: 1 });
 
         res.status(200).json({
@@ -59,11 +60,7 @@ export const getLabTests = async (req: Request, res: Response): Promise<void> =>
 
         res.status(200).json({
             success: true,
-            data: {
-                labName: lab.labName,
-                availableTests: lab.availableTests,
-                hasConfiguredTests: lab.hasConfiguredTests,
-            },
+            data: lab,
         });
     } catch (error: any) {
         console.error('Get lab tests error:', error);
@@ -76,7 +73,7 @@ export const getLabTests = async (req: Request, res: Response): Promise<void> =>
 };
 
 // ============================================
-// UPDATE LAB'S AVAILABLE TESTS (Lab only)
+// UPDATE LAB'S AVAILABLE TESTS
 // ============================================
 export const updateLabTests = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -86,12 +83,29 @@ export const updateLabTests = async (req: Request, res: Response): Promise<void>
         if (!testIds || !Array.isArray(testIds)) {
             res.status(400).json({
                 success: false,
-                message: 'Test IDs array is required',
+                message: 'testIds array is required',
             });
             return;
         }
 
-        const lab = await Lab.findById(id);
+        // Verify all test IDs exist
+        const tests = await Test.find({ _id: { $in: testIds } });
+        if (tests.length !== testIds.length) {
+            res.status(400).json({
+                success: false,
+                message: 'One or more test IDs are invalid',
+            });
+            return;
+        }
+
+        const lab = await Lab.findByIdAndUpdate(
+            id,
+            {
+                availableTests: testIds,
+                hasConfiguredTests: testIds.length > 0,
+            },
+            { new: true, runValidators: true }
+        ).populate('availableTests', 'name category basePrice');
 
         if (!lab) {
             res.status(404).json({
@@ -101,33 +115,10 @@ export const updateLabTests = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        // Verify all test IDs exist
-        const tests = await Test.find({ _id: { $in: testIds }, isActive: true });
-        if (tests.length !== testIds.length) {
-            res.status(400).json({
-                success: false,
-                message: 'One or more test IDs are invalid or inactive',
-            });
-            return;
-        }
-
-        // Update lab's available tests
-        lab.availableTests = testIds;
-        lab.hasConfiguredTests = testIds.length > 0;
-
-        await lab.save();
-
-        // Populate and return
-        await lab.populate('availableTests', 'name description category basePrice reportDeliveryTime');
-
         res.status(200).json({
             success: true,
             message: 'Lab tests updated successfully',
-            data: {
-                labName: lab.labName,
-                availableTests: lab.availableTests,
-                hasConfiguredTests: lab.hasConfiguredTests,
-            },
+            data: lab,
         });
     } catch (error: any) {
         console.error('Update lab tests error:', error);
@@ -140,13 +131,12 @@ export const updateLabTests = async (req: Request, res: Response): Promise<void>
 };
 
 // ============================================
-// GET LABS BY TEST (Find labs offering a specific test)
+// GET LABS OFFERING A SPECIFIC TEST
 // ============================================
 export const getLabsByTest = async (req: Request, res: Response): Promise<void> => {
     try {
         const { testId } = req.params;
 
-        // Verify test exists
         const test = await Test.findById(testId);
         if (!test) {
             res.status(404).json({
@@ -183,6 +173,137 @@ export const getLabsByTest = async (req: Request, res: Response): Promise<void> 
         res.status(500).json({
             success: false,
             message: 'Failed to fetch labs',
+            error: error.message,
+        });
+    }
+};
+
+// ============================================
+// UPDATE LAB TIME SLOTS
+// ============================================
+export const updateLabTimeSlots = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { timeSlots } = req.body;
+
+        if (!timeSlots || !Array.isArray(timeSlots)) {
+            res.status(400).json({
+                success: false,
+                message: 'timeSlots array is required',
+            });
+            return;
+        }
+
+        // Validate time slot format
+        const isValid = timeSlots.every(
+            (slot: any) =>
+                slot.time &&
+                typeof slot.time === 'string' &&
+                typeof slot.isActive === 'boolean'
+        );
+
+        if (!isValid) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid time slot format. Each slot must have time (string) and isActive (boolean)',
+            });
+            return;
+        }
+
+        const lab = await Lab.findByIdAndUpdate(
+            id,
+            { timeSlots },
+            { new: true, runValidators: true }
+        ).select('labName timeSlots operatingHours');
+
+        if (!lab) {
+            res.status(404).json({
+                success: false,
+                message: 'Lab not found',
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Time slots updated successfully',
+            data: lab,
+        });
+    } catch (error: any) {
+        console.error('Update lab time slots error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update time slots',
+            error: error.message,
+        });
+    }
+};
+
+// ============================================
+// GET AVAILABLE TIME SLOTS FOR A LAB ON A SPECIFIC DATE
+// ============================================
+export const getAvailableTimeSlots = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { date } = req.query;
+
+        if (!date) {
+            res.status(400).json({
+                success: false,
+                message: 'Date parameter is required (format: YYYY-MM-DD)',
+            });
+            return;
+        }
+
+        const lab = await Lab.findById(id).select('labName timeSlots');
+
+        if (!lab) {
+            res.status(404).json({
+                success: false,
+                message: 'Lab not found',
+            });
+            return;
+        }
+
+        // Get all active time slots from lab configuration
+        const activeSlots = lab.timeSlots?.filter(slot => slot.isActive) || [];
+
+        // Get existing bookings for this lab on this date
+        const startDate = new Date(date as string);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 1);
+
+        const existingBookings = await Booking.find({
+            lab: id,
+            bookingDate: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+            status: { $nin: ['cancelled'] }, // Exclude cancelled bookings
+        }).select('preferredTimeSlot');
+
+        // Get booked time slots
+        const bookedSlots = existingBookings.map(b => b.preferredTimeSlot);
+
+        // Filter out booked slots
+        const availableSlots = activeSlots.filter(
+            slot => !bookedSlots.includes(slot.time)
+        );
+
+        res.status(200).json({
+            success: true,
+            data: {
+                labName: lab.labName,
+                date,
+                availableSlots: availableSlots.map(s => s.time),
+                bookedSlots,
+            },
+        });
+    } catch (error: any) {
+        console.error('Get available time slots error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch available time slots',
             error: error.message,
         });
     }

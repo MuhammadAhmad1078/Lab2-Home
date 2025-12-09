@@ -23,6 +23,7 @@ import PhlebotomistMessages from "./pages/PhlebotomistMessages";
 import LabAppointments from "./pages/LabAppointments";
 import LabUploadReport from "./pages/LabUploadReport";
 import LabTestSelection from "./pages/LabTestSelection";
+import ChangePassword from "./pages/ChangePassword";
 const queryClient = new QueryClient();
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -61,6 +62,14 @@ const App = () => (
                 }
               />
               <Route path="/patient/book-test" element={<BookTest />} />
+              <Route
+                path="/patient/change-password"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <ChangePassword />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* LAB ROUTES */}
               <Route
@@ -103,6 +112,14 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/lab/change-password"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <ChangePassword />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* PHLEBOTOMIST ROUTES */}
               <Route
@@ -110,6 +127,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
                     <PhlebotomistMessages />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/phlebotomist/change-password"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <ChangePassword />
                   </ProtectedRoute>
                 }
               />
