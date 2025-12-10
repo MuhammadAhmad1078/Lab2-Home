@@ -296,7 +296,7 @@ const LabTestSelection = () => {
                                                         {test.description}
                                                     </p>
                                                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                                        <span className="font-medium text-primary">₹{test.basePrice}</span>
+                                                        <span className="font-medium text-primary">Rs. {test.basePrice}</span>
                                                         <span>•</span>
                                                         <span>{test.reportDeliveryTime}</span>
                                                         {test.sampleType && (

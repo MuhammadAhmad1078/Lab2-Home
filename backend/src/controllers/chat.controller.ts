@@ -150,13 +150,40 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
         conversation.lastMessageAt = new Date();
 
         // Increment unread count for recipient
+        // Increment unread count for recipient
+        let recipientId: string;
+        let recipientType: 'patient' | 'lab';
+
         if (userType === 'patient') {
             conversation.unreadCount.lab += 1;
+            recipientId = conversation.lab.toString();
+            recipientType = 'lab';
         } else {
             conversation.unreadCount.patient += 1;
+            recipientId = conversation.patient.toString();
+            recipientType = 'patient';
         }
         await conversation.save();
         console.log('Conversation updated');
+
+        // Create In-App Notification using dynamic import to avoid circular dependencies
+        try {
+            const { createNotification } = await import('./notification.controller');
+            await createNotification({
+                user: recipientId,
+                userType: recipientType,
+                type: 'new_message',
+                title: 'New Message 💬',
+                message: `You have a new message from ${userType === 'patient' ? 'Patient' : 'Lab'}.`,
+                metadata: {
+                    conversationId: conversationId,
+                    senderType: userType,
+                }
+            });
+            console.log(`✅ In-app notification sent to ${recipientType} ${recipientId}`);
+        } catch (notifError) {
+            console.error('❌ Failed to create message notification:', notifError);
+        }
 
         // Emit Socket Event (Exclude data buffer for performance)
         const messageForSocket: any = message.toObject();

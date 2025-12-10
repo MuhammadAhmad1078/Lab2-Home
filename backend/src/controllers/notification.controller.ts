@@ -136,7 +136,7 @@ export const deleteNotification = async (req: Request, res: Response): Promise<v
 export const createNotification = async (data: {
     user: string;
     userType: 'patient' | 'lab' | 'phlebotomist';
-    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled';
+    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message';
     title: string;
     message: string;
     relatedBooking?: string;

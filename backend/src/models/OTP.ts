@@ -5,6 +5,7 @@ export interface IOTP extends Document {
   otp: string;
   purpose: 'signup' | 'reset-password' | 'password-change';
   userType?: string;
+  attempts: number;
   expiresAt: Date;
   createdAt: Date;
 }
@@ -29,6 +30,10 @@ const otpSchema = new Schema<IOTP>(
     userType: {
       type: String,
       required: false,
+    },
+    attempts: {
+      type: Number,
+      default: 0,
     },
     expiresAt: {
       type: Date,

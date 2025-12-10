@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface INotification extends Document {
     user: mongoose.Types.ObjectId;
     userType: 'patient' | 'lab' | 'phlebotomist';
-    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled';
+    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message';
     title: string;
     message: string;
     relatedBooking?: mongoose.Types.ObjectId;
@@ -12,6 +12,8 @@ export interface INotification extends Document {
         newStatus?: string;
         testName?: string;
         labName?: string;
+        senderName?: string; // Add senderName for chat notifications
+        conversationId?: string; // Add conversationId
         [key: string]: any;
     };
     isRead: boolean;
@@ -34,7 +36,7 @@ const notificationSchema = new Schema<INotification>(
         type: {
             type: String,
             required: true,
-            enum: ['status_update', 'report_uploaded', 'booking_created', 'booking_cancelled'],
+            enum: ['status_update', 'report_uploaded', 'booking_created', 'booking_cancelled', 'new_message'],
         },
         title: {
             type: String,

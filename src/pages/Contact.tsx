@@ -220,7 +220,7 @@ const Contact = () => {
                                         icon={<Phone className="w-5 h-5" />}
                                         iconColor="bg-primary text-primary-foreground"
                                         title="Call Us"
-                                        main="+92 300 1234567"
+                                        main="0306-2221078"
                                         sub="Mon-Sat, 9am - 6pm (PKT)"
                                         delay={0.2}
                                     />
@@ -232,14 +232,7 @@ const Contact = () => {
                                         sub="For general inquiries"
                                         delay={0.3}
                                     />
-                                    <InfoItemCard
-                                        icon={<MapPin className="w-5 h-5" />}
-                                        iconColor="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-100"
-                                        title="Headquarters"
-                                        main="Islamabad, Pakistan"
-                                        sub="Software Technology Park, Constitution Avenue"
-                                        delay={0.4}
-                                    />
+
                                 </div>
                             </SoftCard>
 

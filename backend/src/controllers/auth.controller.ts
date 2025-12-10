@@ -375,10 +375,9 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find OTP record
+    // Find OTP record (Check for existing OTP regardless of the code provided first)
     const otpRecord = await OTP.findOne({
       email: email.toLowerCase(),
-      otp,
       purpose: 'signup',
       expiresAt: { $gt: new Date() },
     });
@@ -386,10 +385,65 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
     if (!otpRecord) {
       res.status(400).json({
         success: false,
-        message: 'Invalid or expired OTP',
+        message: 'Invalid or expired OTP. Please request a new one.',
       });
       return;
     }
+
+    // Check if OTP matches
+    if (otpRecord.otp !== otp) {
+      // Increment attempts
+      otpRecord.attempts = (otpRecord.attempts || 0) + 1;
+
+      // If attempts reach 3, generate new OTP and send it
+      if (otpRecord.attempts >= 3) {
+        // Delete the old OTP
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        // Find user name for email
+        let userName = 'User';
+        if (userType === 'patient') {
+          const u = await Patient.findOne({ email: email.toLowerCase() });
+          if (u) userName = u.fullName;
+        } else if (userType === 'lab') {
+          const u = await Lab.findOne({ email: email.toLowerCase() });
+          if (u) userName = u.fullName;
+        } else if (userType === 'phlebotomist') {
+          const u = await Phlebotomist.findOne({ email: email.toLowerCase() });
+          if (u) userName = u.fullName;
+        }
+
+        // Generate new OTP
+        const newOtp = generateOTP();
+        await OTP.create({
+          email: email.toLowerCase(),
+          otp: newOtp,
+          purpose: 'signup',
+        });
+
+        // Send new OTP email
+        await sendOTPEmail(email, newOtp, userName);
+
+        res.status(400).json({
+          success: false,
+          message: 'Incorrect OTP. Maximum attempts (3) reached. A new OTP has been sent to your email.',
+        });
+        return;
+      }
+
+      // Save the incremented attempt count
+      await otpRecord.save();
+
+      res.status(400).json({
+        success: false,
+        message: `Incorrect OTP. You have ${3 - otpRecord.attempts} attempts remaining.`,
+      });
+      return;
+    }
+
+    // ===================================
+    // OTP MATCHES - PROCEED WITH SUCCESS
+    // ===================================
 
     // Verify and activate account based on user type
     if (userType === 'phlebotomist') {
