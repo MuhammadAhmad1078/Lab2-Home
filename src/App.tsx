@@ -26,9 +26,12 @@ import LabAppointments from "./pages/LabAppointments";
 import LabUploadReport from "./pages/LabUploadReport";
 import LabTestSelection from "./pages/LabTestSelection";
 import ChangePassword from "./pages/ChangePassword";
-const queryClient = new QueryClient();
+import PhlebotomistAppointments from "./pages/PhlebotomistAppointments";
+import PhlebotomistSamples from "./pages/PhlebotomistSamples";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
+
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -129,6 +132,30 @@ const App = () => (
               {/* PHLEBOTOMIST ROUTES */}
               <Route
                 path="/phlebotomist"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/phlebotomist/appointments"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistAppointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/phlebotomist/samples"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistSamples />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/phlebotomist/messages"
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
                     <PhlebotomistMessages />
