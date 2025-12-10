@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import logo from "/logo.svg";
+import { publicNavItems } from "@/config/public-nav";
 
 // Login schema
 const loginSchema = z.object({
@@ -65,36 +66,7 @@ export default function Login() {
     }
   };
 
-  const navItems = [
-    {
-      label: "Services",
-      bgColor: "hsl(200 85% 45%)",
-      textColor: "#fff",
-      links: [
-        { label: "Diagnostic Tests", href: "/", ariaLabel: "View diagnostic tests" },
-        { label: "Home Collection", href: "/", ariaLabel: "Home sample collection" },
-        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" }
-      ]
-    },
-    {
-      label: "About",
-      bgColor: "hsl(180 65% 50%)",
-      textColor: "#fff",
-      links: [
-        { label: "How It Works", href: "/", ariaLabel: "Learn how it works" },
-        { label: "Our Team", href: "/", ariaLabel: "Meet our team" }
-      ]
-    },
-    {
-      label: "Contact",
-      bgColor: "hsl(150 70% 45%)",
-      textColor: "#fff",
-      links: [
-        { label: "Support", href: "/", ariaLabel: "Contact support" },
-        { label: "Book Test", href: "/signup", ariaLabel: "Book a test" }
-      ]
-    }
-  ];
+  /* navItems removed */
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -102,7 +74,7 @@ export default function Login() {
         <CardNav
           logo={logo}
           logoAlt="Lab2Home Logo"
-          items={navItems}
+          items={publicNavItems}
           baseColor="#fff"
           menuColor="hsl(200 85% 45%)"
           onExpandChange={setIsNavExpanded}

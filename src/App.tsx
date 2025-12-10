@@ -11,6 +11,8 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 
 import PatientDashboard from "./pages/PatientDashboard";
 import LabDashboard from "./pages/LabDashboard";
@@ -43,6 +45,9 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* PATIENT ROUTES */}
               <Route

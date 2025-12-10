@@ -31,10 +31,26 @@ const Footer = () => {
                   Sign Up
                 </Link>
               </li>
-              <li className="hover:text-background cursor-pointer transition-colors">About Us</li>
-              <li className="hover:text-background cursor-pointer transition-colors">Services</li>
-              <li className="hover:text-background cursor-pointer transition-colors">How It Works</li>
-              <li className="hover:text-background cursor-pointer transition-colors">Marketplace</li>
+              <li>
+                <Link to="/about" className="hover:text-background transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/#services" className="hover:text-background transition-colors">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link to="/#how-it-works" className="hover:text-background transition-colors">
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-background transition-colors">
+                  Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
 

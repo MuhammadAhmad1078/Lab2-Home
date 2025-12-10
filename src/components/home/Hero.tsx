@@ -4,51 +4,23 @@ import { Link } from "react-router-dom";
 import Squares from "./Squares";
 import CardNav from "./CardNav";
 import SplitText from "@/components/shared/SplitText";
+import { publicNavItems } from "@/config/public-nav";
 import logo from "/logo.svg";
 
 const Hero = () => {
-  const navItems = [
-    {
-      label: "Services",
-      bgColor: "hsl(200 85% 45%)", // Primary blue
-      textColor: "#fff",
-      links: [
-        { label: "Diagnostic Tests", href: "/", ariaLabel: "View diagnostic tests" },
-        { label: "Home Collection", href: "/", ariaLabel: "Home sample collection" },
-        { label: "AI Reports", href: "/", ariaLabel: "AI-powered report analysis" }
-      ]
-    },
-    {
-      label: "About",
-      bgColor: "hsl(180 65% 50%)", // Secondary teal
-      textColor: "#fff",
-      links: [
-        { label: "How It Works", href: "/", ariaLabel: "Learn how it works" },
-        { label: "Our Team", href: "/", ariaLabel: "Meet our team" }
-      ]
-    },
-    {
-      label: "Contact",
-      bgColor: "hsl(150 70% 45%)", // Health green
-      textColor: "#fff",
-      links: [
-        { label: "Support", href: "/", ariaLabel: "Contact support" },
-        { label: "Book Test", href: "/signup", ariaLabel: "Book a test" }
-      ]
-    }
-  ];
+  /* navItems removed */
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
       <CardNav
         logo={logo}
         logoAlt="Lab2Home Logo"
-        items={navItems}
+        items={publicNavItems}
         baseColor="#fff"
         menuColor="hsl(200 85% 45%)"
       />
       <Squares speed={0.5} squareSize={40} direction="diagonal" />
-      
+
       <div className="relative z-10 container mx-auto px-4 py-20 pointer-events-none">
         <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
           {/* Badge */}
@@ -75,20 +47,20 @@ const Hero = () => {
               rootMargin="0px"
             />
           </div>
-          
+
           <p className="text-xl md:text-2xl text-muted-foreground mb-4">
             Care at Your Fingertips
           </p>
-          
+
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Book home blood sample collection, track your tests in real-time, and get AI-powered 
+            Book home blood sample collection, track your tests in real-time, and get AI-powered
             interpretation of your lab reports—all from the comfort of your home.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 pointer-events-auto">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="group text-lg px-8 py-6 shadow-medium hover:shadow-strong transition-all duration-300"
               asChild
             >
@@ -97,9 +69,9 @@ const Hero = () => {
                 Get Started
               </Link>
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="text-lg px-8 py-6 bg-card/50 backdrop-blur-sm border-2 hover:bg-card/80"
               asChild
             >
