@@ -228,7 +228,7 @@ const Contact = () => {
                                         icon={<Mail className="w-5 h-5" />}
                                         iconColor="bg-secondary text-secondary-foreground"
                                         title="Email Support"
-                                        main="support@lab2home.com"
+                                        main="labhome.help@gmail.com"
                                         sub="For general inquiries"
                                         delay={0.3}
                                     />
@@ -267,7 +267,7 @@ const Contact = () => {
                                                     <FormItem>
                                                         <FormLabel>Full Name</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="John Doe" {...field} />
+                                                            <Input placeholder="Muhammad Ahmad" {...field} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -280,7 +280,7 @@ const Contact = () => {
                                                     <FormItem>
                                                         <FormLabel>Email Address</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="john@example.com" {...field} />
+                                                            <Input placeholder="ahmad@example.com" {...field} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>

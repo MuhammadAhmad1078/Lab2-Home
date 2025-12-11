@@ -214,7 +214,7 @@ const PatientForm = ({
               Full Name
             </FormLabel>
             <FormControl>
-              <Input placeholder="John Doe" className="h-11" {...field} />
+              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -231,7 +231,7 @@ const PatientForm = ({
               Email Address
             </FormLabel>
             <FormControl>
-              <Input type="email" placeholder="john@example.com" className="h-11" {...field} />
+              <Input type="email" placeholder="Ahmad@example.com" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -445,7 +445,7 @@ const LabForm = ({
               Contact Person Name
             </FormLabel>
             <FormControl>
-              <Input placeholder="John Doe" className="h-11" {...field} />
+              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -673,7 +673,7 @@ const PhlebotomistForm = ({
               Full Name
             </FormLabel>
             <FormControl>
-              <Input placeholder="John Doe" className="h-11" {...field} />
+              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

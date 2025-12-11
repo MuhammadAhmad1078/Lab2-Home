@@ -135,7 +135,7 @@ export default function Login() {
                           <FormControl>
                             <Input
                               type="email"
-                              placeholder="john@example.com"
+                              placeholder="ahmad@example.com"
                               className="h-11"
                               {...field}
                             />
