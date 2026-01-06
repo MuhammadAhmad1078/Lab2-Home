@@ -19,6 +19,7 @@ import LabDashboard from "./pages/LabDashboard";
 import PhlebotomistDashboard from "./pages/PhlebotomistDashboard";
 
 import BookTest from "./pages/BookTest";
+import ViewReports from "./pages/ViewReports";
 import PatientMessages from "./pages/PatientMessages";
 import LabMessages from "./pages/LabMessages";
 import PhlebotomistMessages from "./pages/PhlebotomistMessages";
@@ -70,6 +71,14 @@ const App = () => (
                 }
               />
               <Route path="/patient/book-test" element={<BookTest />} />
+              <Route
+                path="/patient/reports"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <ViewReports />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/patient/change-password"
                 element={
