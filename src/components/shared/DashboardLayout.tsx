@@ -74,8 +74,9 @@ const roleConfig = {
     color: "destructive",
     nav: [
       { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
-      { name: "Manage Users", path: "/admin/users", icon: Users },
       { name: "Manage Labs", path: "/admin/labs", icon: Building2 },
+      { name: "Manage Phlebotomists", path: "/admin/phlebotomists", icon: Users },
+      { name: "Manage Patients", path: "/admin/patients", icon: Users },
       { name: "Marketplace", path: "/admin/marketplace", icon: ShoppingBag },
     ],
   },
@@ -93,7 +94,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
   // Get user initials for avatar
   const getUserInitials = () => {
-    if (!user?.fullName) return "U";
+    if (!user) return "U";
+
+    // For admin or users without fullName, use email initials
+    if (!user.fullName) {
+      const emailPart = user.email.split('@')[0];
+      return emailPart.substring(0, 2).toUpperCase();
+    }
+
     const names = user.fullName.split(" ");
     return names.length > 1
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
@@ -190,7 +198,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
               </Avatar>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-semibold text-foreground truncate">
-                  {user.fullName || "User"}
+                  {user.fullName || (role === 'admin' ? 'Administrator' : 'User')}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {user.email}

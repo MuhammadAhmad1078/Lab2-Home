@@ -35,6 +35,8 @@ interface Booking {
   preferredTimeSlot: string;
   status: string;
   totalAmount: number;
+  reportUrl?: string;
+  reportUploadedAt?: string;
 }
 
 const PatientDashboard = () => {
@@ -276,7 +278,7 @@ const PatientDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Recent Reports - Placeholder for now as reports aren't implemented yet */}
+      {/* Recent Reports */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -284,13 +286,56 @@ const PatientDashboard = () => {
         className="mt-6"
       >
         <Card className="border-border bg-card p-6 shadow-soft">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Recent Reports</h2>
-            <p className="text-sm text-muted-foreground">View and download your test results</p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Recent Reports</h2>
+              <p className="text-sm text-muted-foreground">View and download your test results</p>
+            </div>
+            {bookings.filter(b => b.reportUrl && b.status === 'completed').length > 0 && (
+              <Button variant="outline" onClick={() => navigate('/patient/reports')}>
+                View All Reports
+              </Button>
+            )}
           </div>
-          <div className="text-center py-6 text-muted-foreground">
-            No reports available yet.
-          </div>
+          {bookings.filter(b => b.reportUrl && b.status === 'completed').length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              No reports available yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {bookings
+                .filter(b => b.reportUrl && b.status === 'completed')
+                .slice(0, 3)
+                .map((booking) => (
+                  <div
+                    key={booking._id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success flex-shrink-0">
+                        <FileCheck className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {booking.tests.map(t => t.name).join(', ')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {booking.lab.labName}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate('/patient/reports')}
+                      className="flex-shrink-0"
+                    >
+                      View
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          )}
         </Card>
       </motion.div>
     </DashboardLayout>

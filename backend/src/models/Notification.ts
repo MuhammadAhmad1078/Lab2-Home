@@ -2,8 +2,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface INotification extends Document {
     user: mongoose.Types.ObjectId;
-    userType: 'patient' | 'lab' | 'phlebotomist';
-    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message';
+    userType: 'patient' | 'lab' | 'phlebotomist' | 'admin';
+    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message' | 'lab_registered' | 'lab_approved' | 'lab_rejected' | 'lab_activated' | 'lab_deactivated' | 'phlebotomist_registered' | 'patient_activated' | 'patient_deactivated';
     title: string;
     message: string;
     relatedBooking?: mongoose.Types.ObjectId;
@@ -31,12 +31,25 @@ const notificationSchema = new Schema<INotification>(
         userType: {
             type: String,
             required: true,
-            enum: ['patient', 'lab', 'phlebotomist'],
+            enum: ['patient', 'lab', 'phlebotomist', 'admin'],
         },
         type: {
             type: String,
             required: true,
-            enum: ['status_update', 'report_uploaded', 'booking_created', 'booking_cancelled', 'new_message'],
+            enum: [
+                'booking_confirmed',
+                'sample_collected',
+                'report_ready',
+                'lab_registered',
+                'lab_approved',
+                'lab_rejected',
+                'lab_activated',
+                'lab_deactivated',
+                'phlebotomist_registered',
+                'patient_activated',
+                'patient_deactivated',
+                'general'
+            ],
         },
         title: {
             type: String,
