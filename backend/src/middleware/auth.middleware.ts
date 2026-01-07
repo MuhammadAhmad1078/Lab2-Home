@@ -37,8 +37,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-// User type authorization (patient, lab, or phlebotomist)
-export const authorizeUserType = (...userTypes: ('patient' | 'lab' | 'phlebotomist')[]) => {
+// User type authorization (patient, lab, phlebotomist, or admin)
+export const authorizeUserType = (...userTypes: ('patient' | 'lab' | 'phlebotomist' | 'admin')[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({

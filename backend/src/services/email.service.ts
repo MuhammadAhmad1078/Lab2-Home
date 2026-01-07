@@ -393,3 +393,879 @@ export const sendNewBookingEmail = async (
   await sendEmail({ to: email, subject, html });
 };
 
+// ============================================
+// ADMIN NOTIFICATION - New Lab Registration
+// ============================================
+export const sendAdminNotification = async (
+  adminEmail: string,
+  labName: string,
+  labEmail: string,
+  contactPerson: string,
+  phone: string,
+  address: string
+): Promise<void> => {
+  const subject = `New Lab Registration Pending Approval - ${labName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .alert-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+        .info-row { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .info-label { font-weight: bold; color: #666; display: inline-block; width: 150px; }
+        .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🏥 Lab2Home Admin</h1>
+          <p>New Lab Registration Alert</p>
+        </div>
+        <div class="content">
+          <div class="alert-box">
+            <strong>⚠️ Action Required:</strong> A new laboratory has registered and requires your approval.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #667eea;">Lab Details</h3>
+            <div class="info-row">
+              <span class="info-label">Lab Name:</span>
+              <span><strong>${labName}</strong></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Contact Person:</span>
+              <span>${contactPerson}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span>${labEmail}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Phone:</span>
+              <span>${phone}</span>
+            </div>
+            <div class="info-row" style="border-bottom: none;">
+              <span class="info-label">Address:</span>
+              <span>${address}</span>
+            </div>
+          </div>
+          
+          <p><strong>Next Steps:</strong></p>
+          <ul>
+            <li>Review the lab's license document</li>
+            <li>Verify the lab's credentials</li>
+            <li>Approve or reject the registration</li>
+          </ul>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/admin/labs" class="button">Review Lab Registration</a>
+          </div>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated notification. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: adminEmail, subject, html });
+};
+
+// ============================================
+// LAB APPROVAL EMAIL
+// ============================================
+export const sendLabApprovalEmail = async (
+  labEmail: string,
+  labName: string
+): Promise<void> => {
+  const subject = `🎉 Your Lab Registration Has Been Approved!`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .features-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .feature-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+        .feature-item:last-child { border-bottom: none; }
+        .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Congratulations!</h1>
+          <p>Your Lab Has Been Approved</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>✅ Great News!</strong> Your lab registration has been approved by our admin team. You can now start accepting bookings from patients!
+          </div>
+          
+          <div class="features-box">
+            <h3 style="margin-top: 0; color: #10b981;">You Can Now:</h3>
+            <div class="feature-item">
+              ✅ <strong>Login to Your Dashboard</strong> - Access your lab management portal
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Accept Booking Requests</strong> - Receive and manage patient bookings
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Upload Test Reports</strong> - Provide test results to patients
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Manage Your Profile</strong> - Update lab information and services
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Track Performance</strong> - View analytics and booking statistics
+            </div>
+          </div>
+          
+          <p><strong>Getting Started:</strong></p>
+          <ol>
+            <li>Login to your dashboard using your registered email</li>
+            <li>Complete your lab profile with available tests</li>
+            <li>Set your operating hours and time slots</li>
+            <li>Start accepting patient bookings!</li>
+          </ol>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" class="button">Login to Dashboard</a>
+          </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>Welcome to the Lab2Home family! 🏥</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: labEmail, subject, html });
+};
+
+// ============================================
+// LAB REJECTION EMAIL
+// ============================================
+export const sendLabRejectionEmail = async (
+  labEmail: string,
+  labName: string,
+  reason: string
+): Promise<void> => {
+  const subject = `Lab Registration Status Update - ${labName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .reason-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🏥 Lab2Home</h1>
+          <p>Registration Status Update</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName},</h2>
+          
+          <p>Thank you for your interest in joining Lab2Home.</p>
+          
+          <div class="info-box">
+            We regret to inform you that we are unable to approve your lab registration at this time.
+          </div>
+          
+          <div class="reason-box">
+            <h3 style="margin-top: 0; color: #ef4444;">Reason for Rejection:</h3>
+            <p style="margin: 0;">${reason}</p>
+          </div>
+          
+          <p><strong>What You Can Do:</strong></p>
+          <ul>
+            <li>Review the rejection reason carefully</li>
+            <li>Address the issues mentioned</li>
+            <li>Contact our support team if you need clarification</li>
+            <li>Reapply once you've resolved the concerns</li>
+          </ul>
+          
+          <p>If you believe this decision was made in error or would like to discuss this further, please contact our support team at <a href="mailto:support@lab2home.com">support@lab2home.com</a>.</p>
+          
+          <p>We appreciate your understanding and hope to work with you in the future.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: labEmail, subject, html });
+};
+
+// ============================================
+// LAB ACTIVATION EMAIL
+// ============================================
+export const sendLabActivationEmail = async (
+  labEmail: string,
+  labName: string
+): Promise<void> => {
+  const subject = `✅ Your Lab Has Been Activated - ${labName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Lab Activated!</h1>
+          <p>You're Back Online</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>Good News!</strong> Your lab has been activated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #10b981;">What This Means:</h3>
+            <p>✅ Your lab is now <strong>visible to patients</strong></p>
+            <p>✅ You can <strong>accept new booking requests</strong></p>
+            <p>✅ Patients can find and book your services</p>
+            <p>✅ All features are fully operational</p>
+          </div>
+          
+          <p>You can now start receiving and managing patient bookings through your dashboard.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/lab" class="button">Go to Dashboard</a>
+          </div>
+          
+          <p>Thank you for being part of Lab2Home!</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: labEmail, subject, html });
+};
+
+// ============================================
+// LAB DEACTIVATION EMAIL
+// ============================================
+export const sendLabDeactivationEmail = async (
+  labEmail: string,
+  labName: string
+): Promise<void> => {
+  const subject = `Lab Temporarily Deactivated - ${labName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⚠️ Lab Deactivated</h1>
+          <p>Temporary Status Change</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName},</h2>
+          
+          <div class="warning-box">
+            <strong>Notice:</strong> Your lab has been temporarily deactivated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #f59e0b;">What This Means:</h3>
+            <p>❌ Your lab is <strong>not visible to patients</strong></p>
+            <p>❌ You <strong>cannot accept new booking requests</strong></p>
+            <p>✅ You can still <strong>access your dashboard</strong></p>
+            <p>✅ You can still <strong>view existing bookings</strong></p>
+            <p>✅ You can still <strong>upload reports for existing bookings</strong></p>
+          </div>
+          
+          <p><strong>What You Should Do:</strong></p>
+          <ul>
+            <li>Contact our admin team to understand the reason</li>
+            <li>Address any outstanding issues</li>
+            <li>Continue managing your existing bookings</li>
+            <li>Wait for reactivation notification</li>
+          </ul>
+          
+          <p>If you have questions or concerns about this deactivation, please contact our support team at <a href="mailto:support@lab2home.com">support@lab2home.com</a>.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: labEmail, subject, html });
+};
+
+// ============================================
+// PHLEBOTOMIST APPROVAL EMAIL
+// ============================================
+export const sendPhlebotomistApprovalEmail = async (
+    email: string,
+    fullName: string
+): Promise<void> => {
+    const subject = `🎉 Your Phlebotomist Registration Has Been Approved!`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .features-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .feature-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+        .feature-item:last-child { border-bottom: none; }
+        .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Congratulations!</h1>
+          <p>Your Registration Has Been Approved</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>✅ Great News!</strong> Your phlebotomist registration has been approved by our admin team. You can now start accepting assignments!
+          </div>
+          
+          <div class="features-box">
+            <h3 style="margin-top: 0; color: #10b981;">You Can Now:</h3>
+            <div class="feature-item">
+              ✅ <strong>Login to Your Dashboard</strong> - Access your phlebotomist portal
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Accept Assignments</strong> - Receive and manage sample collection requests
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Update Your Location</strong> - Let labs know where you are
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Manage Your Profile</strong> - Update your information and qualifications
+            </div>
+            <div class="feature-item">
+              ✅ <strong>Track Your Work</strong> - View your assignment history and performance
+            </div>
+          </div>
+          
+          <p><strong>Getting Started:</strong></p>
+          <ol>
+            <li>Login to your dashboard using your registered email</li>
+            <li>Complete your profile with availability details</li>
+            <li>Enable location services for better assignment matching</li>
+            <li>Start accepting sample collection assignments!</li>
+          </ol>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" class="button">Login to Dashboard</a>
+          </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>Welcome to the Lab2Home family! 🏥</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// PHLEBOTOMIST REJECTION EMAIL
+// ============================================
+export const sendPhlebotomistRejectionEmail = async (
+    email: string,
+    fullName: string,
+    reason: string
+): Promise<void> => {
+    const subject = `Phlebotomist Registration Status Update`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .reason-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🏥 Lab2Home</h1>
+          <p>Registration Status Update</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName},</h2>
+          
+          <p>Thank you for your interest in joining Lab2Home as a phlebotomist.</p>
+          
+          <div class="info-box">
+            We regret to inform you that we are unable to approve your registration at this time.
+          </div>
+          
+          <div class="reason-box">
+            <h3 style="margin-top: 0; color: #ef4444;">Reason for Rejection:</h3>
+            <p style="margin: 0;">${reason}</p>
+          </div>
+          
+          <p><strong>What You Can Do:</strong></p>
+          <ul>
+            <li>Review the rejection reason carefully</li>
+            <li>Address the issues mentioned</li>
+            <li>Contact our support team if you need clarification</li>
+            <li>Reapply once you've resolved the concerns</li>
+          </ul>
+          
+          <p>If you believe this decision was made in error or would like to discuss this further, please contact our support team at <a href="mailto:support@lab2home.com">support@lab2home.com</a>.</p>
+          
+          <p>We appreciate your understanding and hope to work with you in the future.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// PHLEBOTOMIST ACTIVATION EMAIL
+// ============================================
+export const sendPhlebotomistActivationEmail = async (
+    email: string,
+    fullName: string
+): Promise<void> => {
+    const subject = `✅ Your Account Has Been Activated`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Account Activated!</h1>
+          <p>You're Back Online</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>Good News!</strong> Your account has been activated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #10b981;">What This Means:</h3>
+            <p>✅ You can now <strong>accept new assignments</strong></p>
+            <p>✅ Labs can <strong>assign you to sample collections</strong></p>
+            <p>✅ Your profile is <strong>active in the system</strong></p>
+            <p>✅ All features are fully operational</p>
+          </div>
+          
+          <p>You can now start receiving and managing sample collection assignments through your dashboard.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/phlebotomist" class="button">Go to Dashboard</a>
+          </div>
+          
+          <p>Thank you for being part of Lab2Home!</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// PHLEBOTOMIST DEACTIVATION EMAIL
+// ============================================
+export const sendPhlebotomistDeactivationEmail = async (
+    email: string,
+    fullName: string
+): Promise<void> => {
+    const subject = `Account Temporarily Deactivated`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⚠️ Account Deactivated</h1>
+          <p>Temporary Status Change</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName},</h2>
+          
+          <div class="warning-box">
+            <strong>Notice:</strong> Your account has been temporarily deactivated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #f59e0b;">What This Means:</h3>
+            <p>❌ You <strong>cannot accept new assignments</strong></p>
+            <p>❌ Labs <strong>cannot assign you to new collections</strong></p>
+            <p>✅ You can still <strong>access your dashboard</strong></p>
+            <p>✅ You can still <strong>view existing assignments</strong></p>
+            <p>✅ You can still <strong>complete ongoing work</strong></p>
+          </div>
+          
+          <p><strong>What You Should Do:</strong></p>
+          <ul>
+            <li>Contact our admin team to understand the reason</li>
+            <li>Address any outstanding issues</li>
+            <li>Continue managing your existing assignments</li>
+            <li>Wait for reactivation notification</li>
+          </ul>
+          
+          <p>If you have questions or concerns about this deactivation, please contact our support team at <a href="mailto:support@lab2home.com">support@lab2home.com</a>.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// ADMIN NOTIFICATION - New Phlebotomist Registration
+// ============================================
+export const sendAdminPhlebotomistNotification = async (
+    adminEmail: string,
+    phlebotomistName: string,
+    phlebotomistEmail: string,
+    phlebotomistPhone: string,
+    qualification: string
+): Promise<void> => {
+    const subject = `🩺 New Phlebotomist Registration - ${phlebotomistName}`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .alert-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-grid { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: bold; width: 150px; color: #667eea; }
+        .info-value { flex: 1; }
+        .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🩺 New Phlebotomist Registration</h1>
+          <p>Action Required</p>
+        </div>
+        <div class="content">
+          <div class="alert-box">
+            <strong>⚠️ Pending Approval</strong><br>
+            A new phlebotomist has registered and requires your approval to start accepting assignments.
+          </div>
+          
+          <h2>Phlebotomist Details:</h2>
+          <div class="info-grid">
+            <div class="info-row">
+              <div class="info-label">Full Name:</div>
+              <div class="info-value">${phlebotomistName}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Email:</div>
+              <div class="info-value">${phlebotomistEmail}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Phone:</div>
+              <div class="info-value">${phlebotomistPhone}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Qualification:</div>
+              <div class="info-value">${qualification}</div>
+            </div>
+          </div>
+          
+          <p><strong>Next Steps:</strong></p>
+          <ol>
+            <li>Login to your admin dashboard</li>
+            <li>Navigate to "Manage Phlebotomists"</li>
+            <li>Review the phlebotomist's traffic license and details</li>
+            <li>Approve or reject the registration</li>
+          </ol>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/admin/phlebotomists" class="button">Review Registration</a>
+          </div>
+          
+          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            <strong>Note:</strong> The phlebotomist will not be able to accept assignments until you approve their registration.
+          </p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home Admin Portal</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: adminEmail, subject, html });
+};
+
+// ============================================
+// PATIENT ACTIVATION EMAIL
+// ============================================
+export const sendPatientActivationEmail = async (
+    email: string,
+    fullName: string
+): Promise<void> => {
+    const subject = `✅ Your Account Has Been Activated`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Account Activated!</h1>
+          <p>Welcome Back</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>Good News!</strong> Your account has been activated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #10b981;">You Can Now:</h3>
+            <p>✅ <strong>Book Lab Tests</strong> - Schedule tests at your convenience</p>
+            <p>✅ <strong>View Reports</strong> - Access your test results online</p>
+            <p>✅ <strong>Track Bookings</strong> - Monitor your test status in real-time</p>
+            <p>✅ <strong>Manage Profile</strong> - Update your information anytime</p>
+          </div>
+          
+          <p>Your account is now fully operational and you have access to all Lab2Home services.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/patient" class="button">Go to Dashboard</a>
+          </div>
+          
+          <p>If you have any questions, please don't hesitate to contact our support team.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// PATIENT DEACTIVATION EMAIL
+// ============================================
+export const sendPatientDeactivationEmail = async (
+    email: string,
+    fullName: string
+): Promise<void> => {
+    const subject = `Account Temporarily Deactivated`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⚠️ Account Deactivated</h1>
+          <p>Temporary Status Change</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${fullName},</h2>
+          
+          <div class="warning-box">
+            <strong>Notice:</strong> Your account has been temporarily deactivated by our admin team.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #f59e0b;">What This Means:</h3>
+            <p>❌ You <strong>cannot book new tests</strong></p>
+            <p>❌ You <strong>cannot access services</strong></p>
+            <p>✅ Your <strong>existing data is safe</strong></p>
+            <p>✅ You can <strong>contact support</strong> for assistance</p>
+          </div>
+          
+          <p><strong>What You Should Do:</strong></p>
+          <ul>
+            <li>Contact our support team to understand the reason</li>
+            <li>Address any outstanding issues if applicable</li>
+            <li>Wait for account reactivation</li>
+          </ul>
+          
+          <p>If you have questions or concerns about this deactivation, please contact our support team at <a href="mailto:support@lab2home.com">support@lab2home.com</a>.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+    await sendEmail({ to: email, subject, html });
+};

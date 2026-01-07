@@ -17,6 +17,10 @@ import Contact from "./pages/Contact";
 import PatientDashboard from "./pages/PatientDashboard";
 import LabDashboard from "./pages/LabDashboard";
 import PhlebotomistDashboard from "./pages/PhlebotomistDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import LabManagement from "./pages/LabManagement";
+import PhlebotomistManagement from "./pages/PhlebotomistManagement";
+import PatientManagement from "./pages/PatientManagement";
 
 import BookTest from "./pages/BookTest";
 import ViewReports from "./pages/ViewReports";
@@ -176,6 +180,40 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
                     <ChangePassword />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ADMIN ROUTES */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/labs"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <LabManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/phlebotomists"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <PhlebotomistManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/patients"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <PatientManagement />
                   </ProtectedRoute>
                 }
               />

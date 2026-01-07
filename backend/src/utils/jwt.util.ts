@@ -6,7 +6,7 @@ const JWT_EXPIRE: string = process.env.JWT_EXPIRE || '7d';
 export interface JWTPayload {
   id: string;
   email: string;
-  userType: 'patient' | 'lab' | 'phlebotomist';
+  userType: 'patient' | 'lab' | 'phlebotomist' | 'admin';
 }
 
 export const generateToken = (payload: JWTPayload): string => {

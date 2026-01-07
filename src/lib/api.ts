@@ -310,4 +310,248 @@ export const uploadReport = async (bookingId: string, file: File): Promise<ApiRe
   return await response.json();
 };
 
+// ============================================
+// ADMIN APIs
+// ============================================
+
+export const adminAPI = {
+  getDashboardStats: async (): Promise<ApiResponse<any>> => {
+    return apiRequest<any>('/admin/dashboard/stats');
+  },
+
+  getUsers: async (params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    return apiRequest<any>(`/admin/users?${queryParams.toString()}`);
+  },
+
+  getUserById: async (id: string, userType: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/users/${id}?userType=${userType}`);
+  },
+
+  approveUser: async (id: string, userType: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/users/${id}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ userType }),
+    });
+  },
+
+  suspendUser: async (id: string, userType: string, reason: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/users/${id}/suspend`, {
+      method: 'PUT',
+      body: JSON.stringify({ userType, reason }),
+    });
+  },
+
+  reactivateUser: async (id: string, userType: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/users/${id}/reactivate`, {
+      method: 'PUT',
+      body: JSON.stringify({ userType }),
+    });
+  },
+
+  // Lab management
+  getPendingLabs: async (): Promise<ApiResponse<any>> => {
+    return apiRequest<any>('/admin/labs/pending');
+  },
+
+  getAllLabs: async (params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    return apiRequest<any>(`/admin/labs?${queryParams.toString()}`);
+  },
+
+  getLabById: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}`);
+  },
+
+
+  getLabLicense: async (id: string): Promise<Blob> => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/admin/labs/${id}/license`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch license');
+    }
+
+    return await response.blob();
+  },
+
+  approveLab: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/users/${id}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ userType: 'lab' }),
+    });
+  },
+
+  rejectLab: async (id: string, reason: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  editLab: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}/edit`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  removeLab: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  activateLab: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}/activate`, {
+      method: 'PUT',
+    });
+  },
+
+  deactivateLab: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/labs/${id}/deactivate`, {
+      method: 'PUT',
+    });
+  },
+
+  // Phlebotomist management
+  getPendingPhlebotomists: async (): Promise<ApiResponse<any>> => {
+    return apiRequest<any>('/admin/phlebotomists/pending');
+  },
+
+  getAllPhlebotomists: async (params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    return apiRequest<any>(`/admin/phlebotomists?${queryParams.toString()}`);
+  },
+
+  getPhlebotomistById: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}`);
+  },
+
+  approvePhlebotomist: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}/approve`, {
+      method: 'PUT',
+    });
+  },
+
+  rejectPhlebotomist: async (id: string, reason: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  activatePhlebotomist: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}/activate`, {
+      method: 'PUT',
+    });
+  },
+
+  deactivatePhlebotomist: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}/deactivate`, {
+      method: 'PUT',
+    });
+  },
+
+  editPhlebotomist: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}/edit`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  removePhlebotomist: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/phlebotomists/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getPhlebotomistLicense: async (id: string): Promise<Blob> => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/admin/phlebotomists/${id}/license`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch traffic license');
+    }
+
+    return await response.blob();
+  },
+
+  // Patient management
+  getAllPatients: async (params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    return apiRequest<any>(`/admin/patients?${queryParams.toString()}`);
+  },
+
+  getPatientById: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/patients/${id}`);
+  },
+
+  activatePatient: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/patients/${id}/activate`, {
+      method: 'PUT',
+    });
+  },
+
+  deactivatePatient: async (id: string): Promise<ApiResponse<any>> => {
+    return apiRequest<any>(`/admin/patients/${id}/deactivate`, {
+      method: 'PUT',
+    });
+  },
+};
+
 export default apiRequest;

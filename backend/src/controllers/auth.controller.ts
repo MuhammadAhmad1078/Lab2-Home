@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import Patient from '../models/Patient';
 import Lab from '../models/Lab';
 import Phlebotomist from '../models/Phlebotomist';
+import Admin from '../models/Admin';
 import OTP from '../models/OTP';
+import Notification from '../models/Notification';
 import { generateToken } from '../utils/jwt.util';
-import { sendOTPEmail, sendWelcomeEmail } from '../services/email.service';
+import { sendOTPEmail, sendWelcomeEmail, sendAdminNotification, sendAdminPhlebotomistNotification } from '../services/email.service';
 
 // Generate 6-digit OTP
 const generateOTP = (): string => {
@@ -204,7 +206,43 @@ export const labSignup = async (req: Request, res: Response): Promise<void> => {
 
     await lab.save();
 
-    console.log(`✅ Lab created with license document stored in database (${req.file.size} bytes)`);
+    console.log(`✅ Lab created with license document stored in database (${req.file.size} bytes)`)
+
+      ;
+
+    // Notify all admins about new lab registration
+    try {
+      const admins = await Admin.find();
+      for (const admin of admins) {
+        // Send email notification
+        await sendAdminNotification(
+          admin.email,
+          labName,
+          email.toLowerCase(),
+          fullName,
+          phone,
+          labAddress
+        );
+
+        // Create in-app notification
+        await Notification.create({
+          user: admin._id,
+          userType: 'admin',
+          type: 'lab_registered',
+          title: 'New Lab Registration',
+          message: `${labName} has registered and requires approval`,
+          metadata: {
+            labName,
+            labEmail: email.toLowerCase(),
+            contactPerson: fullName,
+          },
+        });
+      }
+      console.log(`✅ Notified ${admins.length} admin(s) about new lab registration`);
+    } catch (notificationError) {
+      console.error('Failed to send admin notifications:', notificationError);
+      // Don't fail the registration if notifications fail
+    }
 
     // Generate and save OTP
     const otp = generateOTP();
@@ -331,6 +369,41 @@ export const phlebotomistSignup = async (req: Request, res: Response): Promise<v
 
     console.log(`✅ Phlebotomist created with traffic license stored in database (${req.file.size} bytes)`);
 
+    // Notify all admins about new phlebotomist registration
+    try {
+      const admins = await Admin.find();
+      for (const admin of admins) {
+        // Send email notification
+        await sendAdminPhlebotomistNotification(
+          admin.email,
+          fullName,
+          email.toLowerCase(),
+          phone,
+          qualification
+        );
+
+        // Create in-app notification
+        await Notification.create({
+          user: admin._id,
+          userType: 'admin',
+          type: 'phlebotomist_registered',
+          title: '🩺 New Phlebotomist Registration',
+          message: `${fullName} has registered as a phlebotomist and is awaiting approval.`,
+          metadata: {
+            phlebotomistId: phlebotomist._id,
+            phlebotomistName: fullName,
+            phlebotomistEmail: email.toLowerCase(),
+            phlebotomistPhone: phone,
+            qualification,
+          },
+        });
+      }
+      console.log(`✅ Admin notifications sent for new phlebotomist: ${fullName}`);
+    } catch (notificationError) {
+      console.error('Failed to send admin notifications:', notificationError);
+      // Don't fail the signup if notifications fail
+    }
+
     // Generate and save OTP
     const otp = generateOTP();
     await OTP.create({
@@ -456,35 +529,21 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      phlebotomist.isVerified = true;
-      await phlebotomist.save();
-
-      // Send welcome email
-      await sendWelcomeEmail(email, phlebotomist.fullName, 'Phlebotomist');
-
-      // Generate JWT token
-      const token = generateToken({
-        id: phlebotomist._id.toString(),
-        email: phlebotomist.email,
-        userType: 'phlebotomist',
-      });
+      // DO NOT set isVerified = true here
+      // Phlebotomists must be approved by admin first
+      // phlebotomist.isVerified will remain false until admin approves
 
       // Delete OTP after successful verification
       await OTP.deleteOne({ _id: otpRecord._id });
 
       res.status(200).json({
         success: true,
-        message: 'Email verified successfully! Welcome to Lab2Home!',
+        message: 'Email verified successfully! Your registration is pending admin approval. You will be notified once approved.',
         data: {
-          token,
-          user: {
-            id: phlebotomist._id,
-            fullName: phlebotomist.fullName,
-            email: phlebotomist.email,
-            phone: phlebotomist.phone,
-            qualification: phlebotomist.qualification,
-            userType: 'phlebotomist',
-          },
+          email: phlebotomist.email,
+          fullName: phlebotomist.fullName,
+          userType: 'phlebotomist',
+          status: 'pending_approval',
         },
       });
     } else if (userType === 'patient') {
@@ -537,35 +596,22 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      lab.isVerified = true;
-      await lab.save();
-
-      // Send welcome email
-      await sendWelcomeEmail(email, lab.fullName, 'Lab');
-
-      // Generate JWT token
-      const token = generateToken({
-        id: lab._id.toString(),
-        email: lab.email,
-        userType: 'lab',
-      });
+      // DO NOT set isVerified = true here
+      // Labs must be approved by admin first
+      // lab.isVerified will remain false until admin approves
 
       // Delete OTP after successful verification
       await OTP.deleteOne({ _id: otpRecord._id });
 
       res.status(200).json({
         success: true,
-        message: 'Email verified successfully! Welcome to Lab2Home!',
+        message: 'Email verified successfully! Your registration is pending admin approval. You will be notified once approved.',
         data: {
-          token,
-          user: {
-            id: lab._id,
-            fullName: lab.fullName,
-            email: lab.email,
-            labName: lab.labName,
-            phone: lab.phone,
-            userType: 'lab',
-          },
+          email: lab.email,
+          labName: lab.labName,
+          fullName: lab.fullName,
+          userType: 'lab',
+          status: 'pending_approval',
         },
       });
     } else {
@@ -742,8 +788,8 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       if (!lab.isVerified) {
         res.status(403).json({
           success: false,
-          message: 'Please verify your email first',
-          needsVerification: true,
+          message: 'Your lab registration is pending admin approval. You will be notified once approved.',
+          needsApproval: true,
         });
         return;
       }
@@ -800,8 +846,8 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       if (!phlebotomist.isVerified) {
         res.status(403).json({
           success: false,
-          message: 'Please verify your email first',
-          needsVerification: true,
+          message: 'Your phlebotomist registration is pending admin approval. You will be notified once approved.',
+          needsApproval: true,
         });
         return;
       }
@@ -843,6 +889,51 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
             phone: phlebotomist.phone,
             qualification: phlebotomist.qualification,
             userType: 'phlebotomist',
+          },
+        },
+      });
+      return;
+    }
+
+    // Not found in Patient, Lab, or Phlebotomist, try Admin collection
+    let admin = await Admin.findOne({ email: email.toLowerCase() }).select('+password');
+
+    if (admin) {
+      // Found as admin
+      if (!admin.isActive) {
+        res.status(403).json({
+          success: false,
+          message: 'Account is deactivated. Please contact support.',
+        });
+        return;
+      }
+
+      // Verify password
+      const isPasswordCorrect = await admin.comparePassword(password);
+      if (!isPasswordCorrect) {
+        res.status(401).json({
+          success: false,
+          message: 'Invalid email or password',
+        });
+        return;
+      }
+
+      // Generate token for admin
+      const token = generateToken({
+        id: admin._id.toString(),
+        email: admin.email,
+        userType: 'admin',
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          token,
+          user: {
+            id: admin._id,
+            email: admin.email,
+            userType: 'admin',
           },
         },
       });
@@ -1123,6 +1214,24 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           labName: lab.labName,
           labAddress: lab.labAddress,
           userType: 'lab',
+        },
+      });
+    } else if (req.user.userType === 'admin') {
+      const admin = await Admin.findById(req.user.id);
+      if (!admin) {
+        res.status(404).json({
+          success: false,
+          message: 'Admin not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          id: admin._id,
+          email: admin.email,
+          userType: 'admin',
         },
       });
     }

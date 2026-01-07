@@ -7,7 +7,7 @@ type UserRole = "patient" | "lab" | "phlebotomist" | "admin";
 interface User {
   id: string;
   email: string;
-  fullName: string;
+  fullName?: string; // Optional since admin doesn't have fullName
   userType: UserRole;
   role: UserRole; // For compatibility with ProtectedRoute
   phone?: string;
