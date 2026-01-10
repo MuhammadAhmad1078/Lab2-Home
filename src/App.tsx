@@ -22,6 +22,7 @@ import LabManagement from "./pages/LabManagement";
 import PhlebotomistManagement from "./pages/PhlebotomistManagement";
 import PatientManagement from "./pages/PatientManagement";
 import AdminMarketplace from "./pages/AdminMarketplace";
+import AdminTestManagement from "./pages/AdminTestManagement";
 
 import BookTest from "./pages/BookTest";
 import ViewReports from "./pages/ViewReports";
@@ -263,6 +264,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="admin">
                     <LabManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/tests"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminTestManagement />
                   </ProtectedRoute>
                 }
               />

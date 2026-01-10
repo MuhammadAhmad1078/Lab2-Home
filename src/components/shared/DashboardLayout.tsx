@@ -81,6 +81,7 @@ const roleConfig = {
     nav: [
       { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
       { name: "Manage Labs", path: "/admin/labs", icon: Building2 },
+      { name: "Diagnostic Tests", path: "/admin/tests", icon: TestTube },
       { name: "Manage Phlebotomists", path: "/admin/phlebotomists", icon: Users },
       { name: "Manage Patients", path: "/admin/patients", icon: Users },
       { name: "Marketplace", path: "/admin/marketplace", icon: ShoppingBag },
