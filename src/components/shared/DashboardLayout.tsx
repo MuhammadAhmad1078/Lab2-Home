@@ -20,6 +20,9 @@ import {
   Menu,
   ChevronRight,
   User,
+  ShoppingCart,
+  Heart,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +45,9 @@ const roleConfig = {
       { name: "Book Test", path: "/patient/book-test", icon: TestTube },
       { name: "My Reports", path: "/patient/reports", icon: FileText },
       { name: "Marketplace", path: "/patient/marketplace", icon: ShoppingBag },
+      { name: "My Cart", path: "/patient/cart", icon: ShoppingCart },
+      { name: "Wishlist", path: "/patient/wishlist", icon: Heart },
+      { name: "My Orders", path: "/patient/orders", icon: Package },
       { name: "Messages", path: "/patient/messages", icon: MessageSquare },
     ],
   },
