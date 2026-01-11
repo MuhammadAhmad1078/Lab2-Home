@@ -13,7 +13,9 @@ export const getAllTests = async (req: Request, res: Response): Promise<void> =>
         if (category) {
             query.category = category;
         }
-        if (isActive !== undefined) {
+        if (req.query.includeInactive === 'true') {
+            delete query.isActive;
+        } else if (isActive !== undefined) {
             query.isActive = isActive === 'true';
         } else {
             // By default, only show active tests

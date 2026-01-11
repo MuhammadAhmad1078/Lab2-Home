@@ -21,6 +21,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import LabManagement from "./pages/LabManagement";
 import PhlebotomistManagement from "./pages/PhlebotomistManagement";
 import PatientManagement from "./pages/PatientManagement";
+import AdminMarketplace from "./pages/AdminMarketplace";
+import AdminTestManagement from "./pages/AdminTestManagement";
 
 import BookTest from "./pages/BookTest";
 import ViewReports from "./pages/ViewReports";
@@ -33,6 +35,14 @@ import LabTestSelection from "./pages/LabTestSelection";
 import ChangePassword from "./pages/ChangePassword";
 import PhlebotomistAppointments from "./pages/PhlebotomistAppointments";
 import PhlebotomistSamples from "./pages/PhlebotomistSamples";
+
+import Marketplace from "./pages/Marketplace";
+import Cart from "./pages/Cart";
+import Wishlist from "./pages/Wishlist";
+import Orders from "./pages/Orders";
+import ProductDetails from "./pages/ProductDetails";
+import Checkout from "./pages/Checkout";
+import OrderDetails from "./pages/OrderDetails";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
 
@@ -88,6 +98,62 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="patient">
                     <ChangePassword />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/marketplace"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <Marketplace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/cart"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <Cart />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/wishlist"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <Wishlist />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/orders"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <Orders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/marketplace/product/:id"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <ProductDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/checkout"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/orders/:id"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <OrderDetails />
                   </ProtectedRoute>
                 }
               />
@@ -202,6 +268,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/tests"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminTestManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/phlebotomists"
                 element={
                   <ProtectedRoute allowedRole="admin">
@@ -214,6 +288,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="admin">
                     <PatientManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/marketplace"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminMarketplace />
                   </ProtectedRoute>
                 }
               />
