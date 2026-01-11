@@ -120,7 +120,13 @@ const Marketplace = () => {
 
     return (
         <DashboardLayout role="patient">
-            <div className="space-y-6">
+            {/* Background Decor */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-400/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
+            </div>
+
+            <div className="relative z-10 space-y-6">
                 {/* Header */}
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Marketplace</h1>

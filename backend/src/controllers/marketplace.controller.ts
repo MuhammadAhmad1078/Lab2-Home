@@ -7,7 +7,10 @@ import Notification from '../models/Notification';
 import Admin from '../models/Admin';
 import multer from 'multer';
 import path from 'path';
+import path from 'path';
 import fs from 'fs';
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from '../services/email.service';
+import User from '../models/User';
 
 // ============================================
 // MULTER CONFIGURATION FOR PRODUCT IMAGES
@@ -747,6 +750,23 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             data: order,
         });
 
+        // Send Success Email (non-blocking)
+        try {
+            const user = await User.findById(patientId);
+            if (user) {
+                await sendOrderConfirmationEmail(
+                    user.email,
+                    user.fullName,
+                    order.orderNumber,
+                    orderItems,
+                    total,
+                    shippingAddress
+                );
+            }
+        } catch (emailError) {
+            console.error('Error sending order confirmation email:', emailError);
+        }
+
         // Create notifications after response (non-blocking)
         try {
             await Notification.create({
@@ -1221,13 +1241,26 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
 
         if (notificationMessage) {
             await Notification.create({
-                user: order.patient,
+                user: order.patient._id,
                 userType: 'patient',
                 type: 'order_status_updated',
                 title: 'Order Status Updated',
                 message: notificationMessage,
                 metadata: { orderId: order._id, status },
             });
+
+            // Send Email Notification
+            const patient = order.patient as any;
+            if (patient && patient.email) {
+                await sendOrderStatusUpdateEmail(
+                    patient.email,
+                    patient.fullName,
+                    order.orderNumber,
+                    status,
+                    order.courierService,
+                    order.trackingNumber
+                );
+            }
         }
 
         res.status(200).json({

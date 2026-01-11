@@ -39,6 +39,7 @@ const AdminMarketplace = () => {
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [isCourierDialogOpen, setIsCourierDialogOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [isEditing, setIsEditing] = useState(false);
     const [courierInfo, setCourierInfo] = useState({
         courierService: 'TCS',
         trackingNumber: '',
@@ -121,6 +122,50 @@ const AdminMarketplace = () => {
         }
     };
 
+    const handleUpdateProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!token || !editingProduct) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('name', productForm.name);
+            formData.append('description', productForm.description);
+            formData.append('category', productForm.category);
+            formData.append('price', productForm.price);
+            formData.append('stock', productForm.stock);
+            formData.append('isFeatured', productForm.isFeatured.toString());
+
+            // Append images if selected
+            if (productImages) {
+                Array.from(productImages).forEach((file) => {
+                    formData.append('images', file);
+                });
+            }
+
+            await marketplaceService.updateProduct(token, editingProduct._id, formData);
+            toast.success('Product updated successfully!');
+            setIsProductDialogOpen(false);
+            resetProductForm();
+            fetchProducts();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to update product');
+        }
+    };
+
+    const handleEditClick = (product: any) => {
+        setProductForm({
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            price: product.price.toString(),
+            stock: product.stock.toString(),
+            isFeatured: product.isFeatured || false,
+        });
+        setEditingProduct(product);
+        setIsEditing(true);
+        setIsProductDialogOpen(true);
+    };
+
     const handleToggleProductStatus = async (productId: string) => {
         if (!token) return;
         try {
@@ -200,6 +245,7 @@ const AdminMarketplace = () => {
         });
         setProductImages(null);
         setEditingProduct(null);
+        setIsEditing(false);
     };
 
     const statusColors: Record<string, string> = {
@@ -245,10 +291,10 @@ const AdminMarketplace = () => {
                                 </DialogTrigger>
                                 <DialogContent className="max-w-2xl">
                                     <DialogHeader>
-                                        <DialogTitle>Add New Product</DialogTitle>
-                                        <DialogDescription>Create a new product for the marketplace</DialogDescription>
+                                        <DialogTitle>{isEditing ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                                        <DialogDescription>{isEditing ? 'Update product details below' : 'Create a new product for the marketplace'}</DialogDescription>
                                     </DialogHeader>
-                                    <form onSubmit={handleCreateProduct} className="space-y-4">
+                                    <form onSubmit={isEditing ? handleUpdateProduct : handleCreateProduct} className="space-y-4">
                                         <div>
                                             <Label htmlFor="name">Product Name *</Label>
                                             <Input
@@ -337,7 +383,7 @@ const AdminMarketplace = () => {
                                             <Button type="button" variant="outline" onClick={() => setIsProductDialogOpen(false)}>
                                                 Cancel
                                             </Button>
-                                            <Button type="submit">Create Product</Button>
+                                            <Button type="submit">{isEditing ? 'Update Product' : 'Create Product'}</Button>
                                         </div>
                                     </form>
                                 </DialogContent>
@@ -393,6 +439,14 @@ const AdminMarketplace = () => {
                                                                 onClick={() => handleToggleProductStatus(product._id)}
                                                             >
                                                                 {product.isActive ? 'Deactivate' : 'Activate'}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleEditClick(product)}
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
                                                             </Button>
                                                             <Button
                                                                 size="sm"

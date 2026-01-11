@@ -27,10 +27,15 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
     const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const productImg = product.images[0];
-    const imageUrl = productImg
-        ? (productImg.startsWith('data:') || productImg.startsWith('http') ? productImg : `${API_URL}${productImg}`)
-        : '/placeholder-product.svg';
+
+    const getImageUrl = (img: string | undefined) => {
+        if (!img) return '/placeholder-product.svg';
+        if (img.startsWith('data:') || img.startsWith('http')) return img;
+        return `${API_URL}${img}`;
+    };
+
+    const firstImage = getImageUrl(product.images[0]);
+    const secondImage = product.images.length > 1 ? getImageUrl(product.images[1]) : null;
 
     const handleAddToCart = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -60,22 +65,36 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
             onClick={() => navigate(`/patient/marketplace/product/${product._id}`)}
         >
             <div className="relative aspect-square overflow-hidden bg-gray-100">
+                {/* Primary Image */}
                 <img
-                    src={imageUrl}
+                    src={firstImage}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className={`w-full h-full object-cover transition-transform duration-500 ${secondImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
                     onError={(e) => {
                         (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                     }}
                 />
+
+                {/* Secondary Image (on Hover) */}
+                {secondImage && (
+                    <img
+                        src={secondImage}
+                        alt={`${product.name} alternate`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                    />
+                )}
+
                 {product.isFeatured && (
-                    <Badge className="absolute top-2 left-2 bg-primary">Featured</Badge>
+                    <Badge className="absolute top-2 left-2 bg-primary z-10">Featured</Badge>
                 )}
                 {product.stock === 0 && (
-                    <Badge className="absolute top-2 right-2 bg-red-500">Out of Stock</Badge>
+                    <Badge className="absolute top-2 right-2 bg-red-500 z-10">Out of Stock</Badge>
                 )}
                 {product.stock > 0 && product.stock <= 5 && (
-                    <Badge className="absolute top-2 right-2 bg-orange-500">Low Stock</Badge>
+                    <Badge className="absolute top-2 right-2 bg-orange-500 z-10">Low Stock</Badge>
                 )}
 
                 {/* Wishlist button overlay */}
