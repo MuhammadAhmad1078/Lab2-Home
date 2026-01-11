@@ -7,10 +7,9 @@ import Notification from '../models/Notification';
 import Admin from '../models/Admin';
 import multer from 'multer';
 import path from 'path';
-import path from 'path';
 import fs from 'fs';
-import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from '../services/email.service';
-import User from '../models/User';
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail, sendAdminNewOrderEmail } from '../services/email.service';
+import Patient from '../models/Patient';
 
 // ============================================
 // MULTER CONFIGURATION FOR PRODUCT IMAGES
@@ -751,12 +750,14 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         });
 
         // Send Success Email (non-blocking)
+        // Send Success Email (non-blocking)
+        let patientDetails = null;
         try {
-            const user = await User.findById(patientId);
-            if (user) {
+            patientDetails = await Patient.findById(patientId);
+            if (patientDetails) {
                 await sendOrderConfirmationEmail(
-                    user.email,
-                    user.fullName,
+                    patientDetails.email,
+                    patientDetails.fullName,
                     order.orderNumber,
                     orderItems,
                     total,
@@ -785,6 +786,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         try {
             const admins = await Admin.find();
             for (const admin of admins) {
+                // In-App Notification
                 await Notification.create({
                     user: admin._id,
                     userType: 'admin',
@@ -793,6 +795,16 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                     message: `Order ${order.orderNumber} placed by patient. Total: Rs. ${total.toFixed(2)}`,
                     metadata: { orderId: order._id, patientId },
                 });
+
+                // Email Notification
+                await sendAdminNewOrderEmail(
+                    admin.email,
+                    'Admin', // Admin model has no fullName
+                    order.orderNumber,
+                    patientDetails ? patientDetails.fullName : 'Guest',
+                    total,
+                    orderItems.length
+                );
             }
         } catch (notifError) {
             console.error('Error sending admin notifications:', notifError);
@@ -1205,7 +1217,7 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        const order = await Order.findById(id);
+        const order = await Order.findById(id).populate('patient');
         if (!order) {
             res.status(404).json({
                 success: false,

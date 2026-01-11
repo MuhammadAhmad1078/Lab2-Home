@@ -769,11 +769,11 @@ export const sendLabDeactivationEmail = async (
 // PHLEBOTOMIST APPROVAL EMAIL
 // ============================================
 export const sendPhlebotomistApprovalEmail = async (
-    email: string,
-    fullName: string
+  email: string,
+  fullName: string
 ): Promise<void> => {
-    const subject = `🎉 Your Phlebotomist Registration Has Been Approved!`;
-    const html = `
+  const subject = `🎉 Your Phlebotomist Registration Has Been Approved!`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -846,19 +846,19 @@ export const sendPhlebotomistApprovalEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
 };
 
 // ============================================
 // PHLEBOTOMIST REJECTION EMAIL
 // ============================================
 export const sendPhlebotomistRejectionEmail = async (
-    email: string,
-    fullName: string,
-    reason: string
+  email: string,
+  fullName: string,
+  reason: string
 ): Promise<void> => {
-    const subject = `Phlebotomist Registration Status Update`;
-    const html = `
+  const subject = `Phlebotomist Registration Status Update`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -914,18 +914,18 @@ export const sendPhlebotomistRejectionEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
 };
 
 // ============================================
 // PHLEBOTOMIST ACTIVATION EMAIL
 // ============================================
 export const sendPhlebotomistActivationEmail = async (
-    email: string,
-    fullName: string
+  email: string,
+  fullName: string
 ): Promise<void> => {
-    const subject = `✅ Your Account Has Been Activated`;
-    const html = `
+  const subject = `✅ Your Account Has Been Activated`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -979,18 +979,18 @@ export const sendPhlebotomistActivationEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
 };
 
 // ============================================
 // PHLEBOTOMIST DEACTIVATION EMAIL
 // ============================================
 export const sendPhlebotomistDeactivationEmail = async (
-    email: string,
-    fullName: string
+  email: string,
+  fullName: string
 ): Promise<void> => {
-    const subject = `Account Temporarily Deactivated`;
-    const html = `
+  const subject = `Account Temporarily Deactivated`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1046,21 +1046,21 @@ export const sendPhlebotomistDeactivationEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
 };
 
 // ============================================
 // ADMIN NOTIFICATION - New Phlebotomist Registration
 // ============================================
 export const sendAdminPhlebotomistNotification = async (
-    adminEmail: string,
-    phlebotomistName: string,
-    phlebotomistEmail: string,
-    phlebotomistPhone: string,
-    qualification: string
+  adminEmail: string,
+  phlebotomistName: string,
+  phlebotomistEmail: string,
+  phlebotomistPhone: string,
+  qualification: string
 ): Promise<void> => {
-    const subject = `🩺 New Phlebotomist Registration - ${phlebotomistName}`;
-    const html = `
+  const subject = `🩺 New Phlebotomist Registration - ${phlebotomistName}`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1137,18 +1137,18 @@ export const sendAdminPhlebotomistNotification = async (
     </html>
   `;
 
-    await sendEmail({ to: adminEmail, subject, html });
+  await sendEmail({ to: adminEmail, subject, html });
 };
 
 // ============================================
 // PATIENT ACTIVATION EMAIL
 // ============================================
 export const sendPatientActivationEmail = async (
-    email: string,
-    fullName: string
+  email: string,
+  fullName: string
 ): Promise<void> => {
-    const subject = `✅ Your Account Has Been Activated`;
-    const html = `
+  const subject = `✅ Your Account Has Been Activated`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1202,18 +1202,18 @@ export const sendPatientActivationEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
 };
 
 // ============================================
 // PATIENT DEACTIVATION EMAIL
 // ============================================
 export const sendPatientDeactivationEmail = async (
-    email: string,
-    fullName: string
+  email: string,
+  fullName: string
 ): Promise<void> => {
-    const subject = `Account Temporarily Deactivated`;
-    const html = `
+  const subject = `Account Temporarily Deactivated`;
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1267,5 +1267,258 @@ export const sendPatientDeactivationEmail = async (
     </html>
   `;
 
-    await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// ORDER CONFIRMATION EMAIL
+// ============================================
+export const sendOrderConfirmationEmail = async (
+  email: string,
+  patientName: string,
+  orderNumber: string,
+  items: any[],
+  total: number,
+  shippingAddress: string
+): Promise<void> => {
+  const subject = `Order Confirmed! 🛒 #${orderNumber} - Lab2Home`;
+
+  const itemsHtml = items.map(item => `
+    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+      <span style="color: #333;">${item.productName} (x${item.quantity})</span>
+      <span style="font-weight: bold;">Rs. ${(item.price * item.quantity).toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .order-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .total-row { display: flex; justify-content: space-between; padding: 15px 0 0 0; margin-top: 10px; border-top: 2px solid #eee; font-weight: bold; font-size: 1.1em; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .address-box { margin-top: 20px; font-size: 0.9em; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🛒 Order Confirmed!</h1>
+          <p>Order #${orderNumber}</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${patientName}! 👋</h2>
+          
+          <div class="success-box">
+            <strong>Thank you for your order!</strong> We have received your order and are processing it.
+          </div>
+          
+          <div class="order-details">
+            <h3 style="margin-top: 0; color: #667eea;">Order Summary</h3>
+            ${itemsHtml}
+            <div class="total-row">
+              <span>Total Amount</span>
+              <span style="color: #667eea;">Rs. ${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="address-box">
+            <strong>Shipping to:</strong><br>
+            ${shippingAddress}
+          </div>
+          
+          <p style="margin-top: 30px;">You will receive another email when your order is dispatched.</p>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/patient/orders" 
+               style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">
+              Track Order
+            </a>
+          </div>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// ORDER STATUS UPDATE EMAIL
+// ============================================
+export const sendOrderStatusUpdateEmail = async (
+  email: string,
+  patientName: string,
+  orderNumber: string,
+  status: string,
+  courierService?: string,
+  trackingNumber?: string
+): Promise<void> => {
+  const statusConfig: any = {
+    confirmed: { title: 'Order Confirmed', color: '#3b82f6', message: 'Your order has been confirmed and is being prepared.' },
+    dispatched: { title: 'Order Dispatched', color: '#8b5cf6', message: 'Your order is on its way!' },
+    delivered: { title: 'Order Delivered', color: '#10b981', message: 'Your order has been delivered successfully.' },
+    cancelled: { title: 'Order Cancelled', color: '#ef4444', message: 'Your order has been cancelled.' }
+  };
+
+  const config = statusConfig[status] || { title: 'Status Updated', color: '#667eea', message: `Order status changed to ${status}` };
+  const subject = `${config.title} - Order #${orderNumber}`;
+
+  let trackingHtml = '';
+  if (status === 'dispatched' && courierService && trackingNumber) {
+    trackingHtml = `
+      <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+        <h4 style="margin: 0 0 10px 0; color: #666;">Tracking Details</h4>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span style="color: #666;">Courier:</span>
+          <strong>${courierService}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">Tracking Number:</span>
+          <strong style="color: #667eea; letter-spacing: 1px;">${trackingNumber}</strong>
+        </div>
+      </div>
+    `;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, ${config.color} 0%, #1f2937 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .status-badge { display: inline-block; padding: 8px 16px; background: ${config.color}; color: white; border-radius: 20px; font-weight: bold; margin: 15px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${config.title}</h1>
+          <p>Order #${orderNumber}</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${patientName}! 👋</h2>
+          
+          <p>${config.message}</p>
+          
+          <div style="text-align: center;">
+            <span class="status-badge">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+          </div>
+
+          ${trackingHtml}
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/patient/orders" 
+               style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">
+              View Order Details
+            </a>
+          </div>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// ADMIN - NEW ORDER RECEIVED EMAIL
+// ============================================
+export const sendAdminNewOrderEmail = async (
+  email: string,
+  adminName: string,
+  orderNumber: string,
+  patientName: string,
+  total: number,
+  itemsCount: number
+): Promise<void> => {
+  const subject = `🔔 New Order Received! #${orderNumber}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .alert-box { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .info-label { font-weight: bold; color: #666; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔔 New Order Alert</h1>
+          <p>Order #${orderNumber}</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${adminName || 'Admin'}! 👋</h2>
+          
+          <div class="alert-box">
+            <strong>Action Required:</strong> A new order has been placed by a patient.
+          </div>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #0284c7;">Order Overview</h3>
+            <div class="info-row">
+              <span class="info-label">Patient:</span>
+              <span>${patientName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Items:</span>
+              <span>${itemsCount} Items</span>
+            </div>
+            <div class="info-row" style="border-bottom: none;">
+              <span class="info-label">Total Amount:</span>
+              <span style="font-weight: bold; color: #0284c7;">Rs. ${total.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <p>Please login to the admin dashboard to review and process this order.</p>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/marketplace" 
+               style="display: inline-block; padding: 12px 30px; background: #0f172a; color: white; text-decoration: none; border-radius: 5px;">
+              Manage Orders
+            </a>
+          </div>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+            <p>Admin Notification System</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: email, subject, html });
 };
