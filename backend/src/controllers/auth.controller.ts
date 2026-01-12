@@ -740,7 +740,7 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       if (!patient.isActive) {
         res.status(403).json({
           success: false,
-          message: 'Account is deactivated. Please contact support.',
+          message: 'Your account has been deactivated by the admin team. Please contact support.',
         });
         return;
       }
@@ -797,7 +797,7 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       if (!lab.isActive) {
         res.status(403).json({
           success: false,
-          message: 'Account is deactivated. Please contact support.',
+          message: 'Your account has been deactivated by the admin team. Please contact support.',
         });
         return;
       }
@@ -855,7 +855,7 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       if (!phlebotomist.isActive) {
         res.status(403).json({
           success: false,
-          message: 'Account is deactivated. Please contact support.',
+          message: 'Your account has been deactivated by the admin team. Please contact support.',
         });
         return;
       }
@@ -996,7 +996,7 @@ export const patientLogin = async (req: Request, res: Response): Promise<void> =
     if (!patient.isActive) {
       res.status(403).json({
         success: false,
-        message: 'Account is deactivated. Please contact support.',
+        message: 'Your account has been deactivated by the admin team. Please contact support.',
       });
       return;
     }
@@ -1083,7 +1083,7 @@ export const labLogin = async (req: Request, res: Response): Promise<void> => {
     if (!lab.isActive) {
       res.status(403).json({
         success: false,
-        message: 'Account is deactivated. Please contact support.',
+        message: 'Your account has been deactivated by the admin team. Please contact support.',
       });
       return;
     }
@@ -1293,11 +1293,11 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       }
     }
 
-    // If user not found, return generic message (security best practice)
+    // If user not found, return error message
     if (!user) {
-      res.status(200).json({
-        success: true,
-        message: 'If an account exists with this email, you will receive a password reset code.',
+      res.status(404).json({
+        success: false,
+        message: 'Account not found. Please check your email or sign up.',
       });
       return;
     }
