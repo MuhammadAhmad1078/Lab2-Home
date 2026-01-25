@@ -18,6 +18,7 @@ export interface IBooking extends Document {
     reportData?: Buffer;
     reportContentType?: string;
     reportUploadedAt?: Date;
+    stripePaymentIntentId?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -97,6 +98,10 @@ const bookingSchema = new Schema<IBooking>(
         },
         reportUploadedAt: {
             type: Date,
+        },
+        stripePaymentIntentId: {
+            type: String,
+            trim: true,
         },
     },
     {

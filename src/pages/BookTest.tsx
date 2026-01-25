@@ -23,6 +23,7 @@ import {
 import TestBookingForm from "@/components/patient/TestBookingForm";
 import { toast } from "sonner";
 import { fetchAvailableLabs } from "@/lib/api";
+import { StripeProvider } from "@/components/shared/StripeProvider";
 
 export interface Test {
   _id: string;
@@ -241,7 +242,9 @@ const BookTest: React.FC = () => {
 
           {/* Test Booking Form */}
           <Card className="p-6 shadow-card">
-            <TestBookingForm selectedLab={selectedLab} />
+            <StripeProvider>
+              <TestBookingForm selectedLab={selectedLab} />
+            </StripeProvider>
           </Card>
         </motion.div>
 
