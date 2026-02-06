@@ -5,6 +5,7 @@ import {
     getAllLabs,
     getLabById,
     getLabLicense,
+    approveLab,
     rejectLab,
     editLabProfile,
     removeLab,
@@ -41,6 +42,7 @@ router.get('/labs/pending', getPendingLabs);
 router.get('/labs', getAllLabs);
 router.get('/labs/:id', getLabById);
 router.get('/labs/:id/license', getLabLicense);
+router.put('/labs/:id/approve', approveLab);
 router.put('/labs/:id/reject', rejectLab);
 router.put('/labs/:id/edit', editLabProfile);
 router.put('/labs/:id/activate', activateLab);

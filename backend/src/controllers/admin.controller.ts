@@ -751,7 +751,11 @@ export const rejectLab = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Create audit log
+        // Store lab info before deletion for audit log and email
+        const labEmail = lab.email;
+        const labName = lab.labName;
+
+        // Create audit log BEFORE deletion
         await AuditLog.create({
             admin: req.user!.id,
             action: 'reject_user',
@@ -761,28 +765,27 @@ export const rejectLab = async (req: Request, res: Response): Promise<void> => {
                 previousStatus: 'pending',
                 newStatus: 'rejected',
                 reason,
+                labName,
+                labEmail,
             },
         });
 
-        // Send notifications (email + in-app)
+        // Send notifications BEFORE deletion
         try {
-            await sendLabRejectionEmail(lab.email, lab.labName, reason);
+            await sendLabRejectionEmail(labEmail, labName, reason);
 
-            await Notification.create({
-                user: id,
-                userType: 'lab',
-                type: 'lab_rejected',
-                title: 'Registration Rejected',
-                message: `Your lab registration was rejected. Reason: ${reason}`,
-                metadata: { reason },
-            });
+            // Note: Cannot create in-app notification since user will be deleted
+            // The email notification is sufficient for rejected users
         } catch (notificationError) {
             console.error('Failed to send rejection notifications:', notificationError);
         }
 
+        // DELETE the lab from database
+        await Lab.findByIdAndDelete(id);
+
         res.status(200).json({
             success: true,
-            message: 'Lab rejected successfully',
+            message: 'Lab rejected and removed successfully',
             data: { reason },
         });
     } catch (error: any) {
@@ -794,6 +797,77 @@ export const rejectLab = async (req: Request, res: Response): Promise<void> => {
         });
     }
 };
+
+
+// APPROVE LAB
+export const approveLab = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        const lab = await Lab.findById(id);
+
+        if (!lab) {
+            res.status(404).json({
+                success: false,
+                message: 'Lab not found',
+            });
+            return;
+        }
+
+        if (lab.isVerified) {
+            res.status(400).json({
+                success: false,
+                message: 'Lab is already approved',
+            });
+            return;
+        }
+
+        // Approve lab
+        lab.isVerified = true;
+        await lab.save();
+
+        // Create audit log
+        await AuditLog.create({
+            admin: req.user!.id,
+            action: 'approve_user',
+            targetUser: id,
+            targetUserType: 'lab',
+            details: {
+                previousStatus: 'pending',
+                newStatus: 'approved',
+            },
+        });
+
+        // Send notifications (email + in-app)
+        try {
+            await sendLabApprovalEmail(lab.email, lab.labName);
+
+            await Notification.create({
+                user: id,
+                userType: 'lab',
+                type: 'lab_approved',
+                title: 'Registration Approved! 🎉',
+                message: 'Your lab has been approved. You can now login and start accepting bookings.',
+            });
+        } catch (notificationError) {
+            console.error('Failed to send approval notifications:', notificationError);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Lab approved successfully',
+            data: lab,
+        });
+    } catch (error: any) {
+        console.error('Approve lab error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to approve lab',
+            error: error.message,
+        });
+    }
+};
+
 
 // EDIT LAB PROFILE
 export const editLabProfile = async (req: Request, res: Response): Promise<void> => {
