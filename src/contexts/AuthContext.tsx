@@ -15,10 +15,15 @@ interface User {
   address?: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -76,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       setLoading(true);
 
@@ -124,13 +129,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('🚀 Navigating to:', path);
         navigate(path, { replace: true });
 
-        return true;
+        return { success: true };
       }
 
-      return false;
-    } catch (error) {
+      // Login failed - return error message from backend
+      return {
+        success: false,
+        message: response.message || "Invalid email or password. Please try again.",
+      };
+    } catch (error: any) {
       console.error("❌ Login error:", error);
-      return false;
+
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "An error occurred during login. Please try again.";
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
     } finally {
       setLoading(false);
     }

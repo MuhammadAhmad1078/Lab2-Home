@@ -404,9 +404,8 @@ export const adminAPI = {
   },
 
   approveLab: async (id: string): Promise<ApiResponse<any>> => {
-    return apiRequest<any>(`/admin/users/${id}/approve`, {
+    return apiRequest<any>(`/admin/labs/${id}/approve`, {
       method: 'PUT',
-      body: JSON.stringify({ userType: 'lab' }),
     });
   },
 
