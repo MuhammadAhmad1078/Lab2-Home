@@ -189,13 +189,22 @@ const Marketplace = () => {
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 ) : products.length === 0 ? (
-                    <div className="text-center py-20">
-                        <p className="text-gray-500 text-lg">No products found</p>
-                        <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or search query</p>
+                    <div className="text-center py-20 bg-white rounded-lg shadow-sm">
+                        <div className="max-w-md mx-auto space-y-4">
+                            <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                                <Search className="h-10 w-10 text-gray-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-700 text-xl font-semibold">No products found</p>
+                                <p className="text-gray-500 text-sm mt-2">
+                                    Try adjusting your filters or search query to find what you're looking for
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                             {products.map((product) => (
                                 <ProductCard
                                     key={product._id}

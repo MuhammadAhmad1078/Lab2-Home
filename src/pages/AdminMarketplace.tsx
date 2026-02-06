@@ -258,34 +258,43 @@ const AdminMarketplace = () => {
 
     return (
         <DashboardLayout role="admin">
-            <div className="space-y-6">
+            {/* Background Decor */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-400/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
+            </div>
+
+            <div className="relative z-10 space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Marketplace Management</h1>
-                        <p className="text-gray-600 mt-1">Manage products and orders</p>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Marketplace Management</h1>
+                        <p className="text-gray-600 mt-2">Manage products and orders efficiently</p>
                     </div>
                 </div>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList>
-                        <TabsTrigger value="products">
-                            <Package className="mr-2 h-4 w-4" />
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-2 h-12">
+                        <TabsTrigger value="products" className="text-base">
+                            <Package className="mr-2 h-5 w-5" />
                             Products
                         </TabsTrigger>
-                        <TabsTrigger value="orders">
-                            <ShoppingCart className="mr-2 h-4 w-4" />
+                        <TabsTrigger value="orders" className="text-base">
+                            <ShoppingCart className="mr-2 h-5 w-5" />
                             Orders
                         </TabsTrigger>
                     </TabsList>
 
                     {/* Products Tab */}
-                    <TabsContent value="products" className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <p className="text-sm text-gray-600">{products.length} total products</p>
+                    <TabsContent value="products" className="space-y-6 mt-6">
+                        <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700">Total Products</p>
+                                <p className="text-2xl font-bold text-primary">{products.length}</p>
+                            </div>
                             <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button onClick={resetProductForm}>
-                                        <Plus className="mr-2 h-4 w-4" />
+                                    <Button onClick={resetProductForm} size="lg" className="shadow-md">
+                                        <Plus className="mr-2 h-5 w-5" />
                                         Add Product
                                     </Button>
                                 </DialogTrigger>
@@ -390,7 +399,7 @@ const AdminMarketplace = () => {
                             </Dialog>
                         </div>
 
-                        <Card>
+                        <Card className="shadow-lg border-0">
                             <CardContent className="p-0">
                                 {loading ? (
                                     <div className="flex items-center justify-center py-20">
@@ -400,6 +409,7 @@ const AdminMarketplace = () => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead>Image</TableHead>
                                                 <TableHead>Product</TableHead>
                                                 <TableHead>Category</TableHead>
                                                 <TableHead>Price</TableHead>
@@ -412,23 +422,49 @@ const AdminMarketplace = () => {
                                             {products.map((product) => (
                                                 <TableRow key={product._id}>
                                                     <TableCell>
+                                                        {product.images && product.images.length > 0 ? (
+                                                            <img
+                                                                src={product.images[0].startsWith('http') || product.images[0].startsWith('data:')
+                                                                    ? product.images[0]
+                                                                    : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${product.images[0]}`}
+                                                                alt={product.name}
+                                                                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).src = '/placeholder-product.svg';
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border-2 border-gray-200 flex items-center justify-center">
+                                                                <Package className="h-8 w-8 text-gray-400" />
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <div>
-                                                            <p className="font-medium">{product.name}</p>
+                                                            <p className="font-semibold text-gray-900">{product.name}</p>
+                                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{product.description}</p>
                                                             {product.isFeatured && (
-                                                                <Badge variant="secondary" className="mt-1">Featured</Badge>
+                                                                <Badge variant="secondary" className="mt-1.5 bg-amber-100 text-amber-700 border-amber-200">⭐ Featured</Badge>
                                                             )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>{product.category}</TableCell>
-                                                    <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
                                                     <TableCell>
-                                                        <span className={product.stock === 0 ? 'text-red-600' : product.stock <= 5 ? 'text-orange-600' : ''}>
-                                                            {product.stock}
+                                                        <Badge variant="outline" className="font-medium">
+                                                            {product.category}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="font-semibold text-gray-900">Rs. {product.price.toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        <span className={`font-semibold ${product.stock === 0 ? 'text-red-600' :
+                                                            product.stock <= 5 ? 'text-orange-600' :
+                                                                'text-green-600'
+                                                            }`}>
+                                                            {product.stock} units
                                                         </span>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant={product.isActive ? 'default' : 'secondary'}>
-                                                            {product.isActive ? 'Active' : 'Inactive'}
+                                                        <Badge variant={product.isActive ? 'default' : 'secondary'} className={product.isActive ? 'bg-green-500' : ''}>
+                                                            {product.isActive ? '✓ Active' : 'Inactive'}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
@@ -437,6 +473,7 @@ const AdminMarketplace = () => {
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() => handleToggleProductStatus(product._id)}
+                                                                className="hover:bg-gray-100"
                                                             >
                                                                 {product.isActive ? 'Deactivate' : 'Activate'}
                                                             </Button>
@@ -444,14 +481,15 @@ const AdminMarketplace = () => {
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() => handleEditClick(product)}
-                                                                className="text-blue-600 hover:text-blue-800"
+                                                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                             <Button
                                                                 size="sm"
-                                                                variant="destructive"
+                                                                variant="outline"
                                                                 onClick={() => handleDeleteProduct(product._id)}
+                                                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
@@ -467,10 +505,13 @@ const AdminMarketplace = () => {
                     </TabsContent>
 
                     {/* Orders Tab */}
-                    <TabsContent value="orders" className="space-y-4">
-                        <p className="text-sm text-gray-600">{orders.length} total orders</p>
+                    <TabsContent value="orders" className="space-y-6 mt-6">
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <p className="text-sm font-medium text-gray-700">Total Orders</p>
+                            <p className="text-2xl font-bold text-primary">{orders.length}</p>
+                        </div>
 
-                        <Card>
+                        <Card className="shadow-lg border-0">
                             <CardContent className="p-0">
                                 {loading ? (
                                     <div className="flex items-center justify-center py-20">

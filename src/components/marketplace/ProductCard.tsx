@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,6 +37,31 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
     const firstImage = getImageUrl(product.images[0]);
     const secondImage = product.images.length > 1 ? getImageUrl(product.images[1]) : null;
 
+    // Get stock status for display
+    const getStockStatus = () => {
+        if (product.stock === 0) {
+            return {
+                label: 'Out of Stock',
+                badgeClass: 'bg-gray-500/90 text-white',
+                available: false,
+            };
+        } else if (product.stock <= 5) {
+            return {
+                label: 'Limited Stock',
+                badgeClass: 'bg-orange-500/90 text-white animate-pulse',
+                available: true,
+            };
+        } else {
+            return {
+                label: 'In Stock',
+                badgeClass: 'bg-green-500/90 text-white',
+                available: true,
+            };
+        }
+    };
+
+    const stockStatus = getStockStatus();
+
     const handleAddToCart = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (product.stock === 0) return;
@@ -61,15 +86,17 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
 
     return (
         <Card
-            className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden"
+            className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white"
             onClick={() => navigate(`/patient/marketplace/product/${product._id}`)}
         >
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
+            {/* Image Container */}
+            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                 {/* Primary Image */}
                 <img
                     src={firstImage}
                     alt={product.name}
-                    className={`w-full h-full object-cover transition-transform duration-500 ${secondImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                    className={`w-full h-full object-cover transition-all duration-700 ${secondImage ? 'group-hover:opacity-0 group-hover:scale-110' : 'group-hover:scale-110'
+                        }`}
                     onError={(e) => {
                         (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                     }}
@@ -80,56 +107,87 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
                     <img
                         src={secondImage}
                         alt={`${product.name} alternate`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:scale-105 transition-transform duration-500"
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-all duration-700 scale-105 group-hover:scale-110"
                         onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                         }}
                     />
                 )}
 
+                {/* Gradient Overlay on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                {/* Featured Badge */}
                 {product.isFeatured && (
-                    <Badge className="absolute top-2 left-2 bg-primary z-10">Featured</Badge>
-                )}
-                {product.stock === 0 && (
-                    <Badge className="absolute top-2 right-2 bg-red-500 z-10">Out of Stock</Badge>
-                )}
-                {product.stock > 0 && product.stock <= 5 && (
-                    <Badge className="absolute top-2 right-2 bg-orange-500 z-10">Low Stock</Badge>
+                    <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg px-3 py-1.5 flex items-center gap-1.5">
+                            <Star className="h-3.5 w-3.5 fill-current" />
+                            <span className="font-semibold">Featured</span>
+                        </Badge>
+                    </div>
                 )}
 
-                {/* Wishlist button overlay */}
-                <Button
-                    size="icon"
-                    variant={isInWishlist ? "default" : "secondary"}
-                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={handleAddToWishlist}
-                    disabled={isAddingToWishlist}
-                >
-                    <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
-                </Button>
+                {/* Stock Status Badge */}
+                <div className="absolute top-4 right-4 z-10">
+                    <Badge className={`${stockStatus.badgeClass} border-0 shadow-lg px-3 py-1.5 font-semibold`}>
+                        {stockStatus.label}
+                    </Badge>
+                </div>
+
+                {/* Wishlist Button */}
+                <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <Button
+                        size="icon"
+                        variant={isInWishlist ? "default" : "secondary"}
+                        className="rounded-full shadow-xl hover:scale-110 transition-transform duration-300 w-11 h-11"
+                        onClick={handleAddToWishlist}
+                        disabled={isAddingToWishlist}
+                    >
+                        <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                    </Button>
+                </div>
             </div>
 
-            <CardContent className="p-4">
-                <div className="mb-2">
-                    <Badge variant="outline" className="text-xs">
+            {/* Content */}
+            <CardContent className="p-6 space-y-4">
+                {/* Category */}
+                <div>
+                    <Badge
+                        variant="outline"
+                        className="text-xs font-semibold border-primary/40 text-primary bg-primary/5 px-3 py-1"
+                    >
                         {product.category}
                     </Badge>
                 </div>
-                <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
-                <p className="text-sm text-gray-600 line-clamp-2 mb-3">{product.description}</p>
-                <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary">Rs. {product.price.toFixed(2)}</span>
-                    <span className="text-sm text-gray-500">{product.stock} in stock</span>
+
+                {/* Product Name */}
+                <h3 className="font-bold text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300 min-h-[3.5rem]">
+                    {product.name}
+                </h3>
+
+                {/* Description */}
+                <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                    {product.description}
+                </p>
+
+                {/* Price */}
+                <div className="pt-2">
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-blue-600 bg-clip-text text-transparent">
+                            Rs. {product.price.toFixed(2)}
+                        </span>
+                    </div>
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0">
+            {/* Footer */}
+            <CardFooter className="p-6 pt-0">
                 <Button
-                    className="w-full"
+                    className="w-full h-12 font-semibold text-base shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-primary to-primary/90 hover:from-primary hover:to-primary"
                     onClick={handleAddToCart}
                     disabled={product.stock === 0 || isAddingToCart}
                 >
-                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    <ShoppingCart className="mr-2 h-5 w-5" />
                     {product.stock === 0 ? 'Out of Stock' : isAddingToCart ? 'Adding...' : 'Add to Cart'}
                 </Button>
             </CardFooter>
