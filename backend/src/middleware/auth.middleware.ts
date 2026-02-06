@@ -62,3 +62,7 @@ export const authorizeUserType = (...userTypes: ('patient' | 'lab' | 'phlebotomi
 
 // Alias for authenticateToken (commonly used as 'protect' in routes)
 export const protect = authenticateToken;
+
+// Alias for authorizeUserType (commonly used as 'restrictTo' in routes)
+export const restrictTo = authorizeUserType;
+

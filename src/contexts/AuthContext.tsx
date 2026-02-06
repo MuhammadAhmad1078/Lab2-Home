@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI, setToken as setApiToken, removeToken as removeApiToken } from "@/lib/api";
+import * as storage from "@/utils/storage";
 
 type UserRole = "patient" | "lab" | "phlebotomist" | "admin";
 
@@ -15,10 +16,15 @@ interface User {
   address?: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -28,14 +34,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("lab2home_token"));
+  const [token, setToken] = useState<string | null>(storage.getToken());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem("lab2home_token");
+      // Migrate from localStorage to sessionStorage (one-time)
+      storage.migrateFromLocalStorage();
+
+      const storedToken = storage.getToken();
       console.log('🔍 Checking auth on mount, token exists:', !!storedToken);
 
       if (storedToken) {
@@ -57,16 +66,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             console.log('✅ Auth check passed, user:', userData);
             setUser(userData);
+            storage.setUser(userData);
           } else {
             console.log('❌ Auth check failed, removing token');
+            storage.clearAuth();
             removeApiToken();
-            localStorage.removeItem("lab2home_user");
             setToken(null);
           }
         } catch (error) {
           console.error("❌ Auth check failed:", error);
+          storage.clearAuth();
           removeApiToken();
-          localStorage.removeItem("lab2home_user");
           setToken(null);
         }
       }
@@ -76,13 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       setLoading(true);
 
       // Clear any existing data first
+      storage.clearAuth();
       removeApiToken();
-      localStorage.removeItem("lab2home_user");
       setUser(null);
       setToken(null);
 
@@ -117,20 +127,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('🧭 Will navigate to:', `/${userData.userType}`);
 
         setUser(userData);
-        localStorage.setItem("lab2home_user", JSON.stringify(userData));
+        storage.setUser(userData);
 
         // Navigate based on user type
         const path = `/${userData.userType}`;
         console.log('🚀 Navigating to:', path);
         navigate(path, { replace: true });
 
-        return true;
+        return { success: true };
       }
 
-      return false;
-    } catch (error) {
+      // Login failed - return error message from backend
+      return {
+        success: false,
+        message: response.message || "Invalid email or password. Please try again.",
+      };
+    } catch (error: any) {
       console.error("❌ Login error:", error);
-      return false;
+
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "An error occurred during login. Please try again.";
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
     } finally {
       setLoading(false);
     }
@@ -139,8 +162,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
+    storage.clearAuth();
     removeApiToken();
-    localStorage.removeItem("lab2home_user");
     navigate("/login");
   };
 

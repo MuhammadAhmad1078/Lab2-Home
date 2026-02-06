@@ -1,6 +1,9 @@
 // API Base URL
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Import centralized storage utility
+import * as storage from '@/utils/storage';
+
 // API Response types
 interface ApiResponse<T = any> {
   success: boolean;
@@ -8,20 +11,10 @@ interface ApiResponse<T = any> {
   data?: T;
 }
 
-// Get auth token from localStorage
-const getToken = (): string | null => {
-  return localStorage.getItem('lab2home_token');
-};
-
-// Set auth token in localStorage
-export const setToken = (token: string): void => {
-  localStorage.setItem('lab2home_token', token);
-};
-
-// Remove auth token from localStorage
-export const removeToken = (): void => {
-  localStorage.removeItem('lab2home_token');
-};
+// Re-export storage functions for backward compatibility
+export const getToken = storage.getToken;
+export const setToken = storage.setToken;
+export const removeToken = storage.removeToken;
 
 // Generic API request function
 const apiRequest = async <T = any>(
@@ -404,9 +397,8 @@ export const adminAPI = {
   },
 
   approveLab: async (id: string): Promise<ApiResponse<any>> => {
-    return apiRequest<any>(`/admin/users/${id}/approve`, {
+    return apiRequest<any>(`/admin/labs/${id}/approve`, {
       method: 'PUT',
-      body: JSON.stringify({ userType: 'lab' }),
     });
   },
 

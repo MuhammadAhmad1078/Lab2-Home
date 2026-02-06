@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface INotification extends Document {
     user: mongoose.Types.ObjectId;
     userType: 'patient' | 'lab' | 'phlebotomist' | 'admin';
-    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message' | 'lab_registered' | 'lab_approved' | 'lab_rejected' | 'lab_activated' | 'lab_deactivated' | 'phlebotomist_registered' | 'patient_activated' | 'patient_deactivated';
+    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message' | 'lab_registered' | 'lab_approved' | 'lab_rejected' | 'lab_activated' | 'lab_deactivated' | 'phlebotomist_registered' | 'patient_activated' | 'patient_deactivated' | 'order_created' | 'new_order' | 'order_cancelled' | 'order_status_updated';
     title: string;
     message: string;
     relatedBooking?: mongoose.Types.ObjectId;
@@ -48,6 +48,10 @@ const notificationSchema = new Schema<INotification>(
                 'phlebotomist_registered',
                 'patient_activated',
                 'patient_deactivated',
+                'order_created',
+                'new_order',
+                'order_cancelled',
+                'order_status_updated',
                 'general'
             ],
         },

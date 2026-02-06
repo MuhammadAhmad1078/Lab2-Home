@@ -49,14 +49,15 @@ export default function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     setLoginError("");
 
-    const success = await login(data.email, data.password);
+    const result = await login(data.email, data.password);
 
-    if (!success) {
-      setLoginError("Invalid email or password. Please try again.");
+    if (!result.success) {
+      const errorMessage = result.message || "Invalid email or password. Please try again.";
+      setLoginError(errorMessage);
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please check your credentials.",
+        description: errorMessage,
       });
     } else {
       toast({
