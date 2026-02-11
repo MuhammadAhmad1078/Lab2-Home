@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface INotification extends Document {
     user: mongoose.Types.ObjectId;
     userType: 'patient' | 'lab' | 'phlebotomist' | 'admin';
-    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'new_message' | 'lab_registered' | 'lab_approved' | 'lab_rejected' | 'lab_activated' | 'lab_deactivated' | 'phlebotomist_registered' | 'patient_activated' | 'patient_deactivated' | 'order_created' | 'new_order' | 'order_cancelled' | 'order_status_updated';
+    type: 'status_update' | 'report_uploaded' | 'booking_created' | 'booking_cancelled' | 'booking_assigned' | 'new_message' | 'booking_confirmed' | 'sample_collected' | 'report_ready' | 'lab_registered' | 'lab_approved' | 'lab_rejected' | 'lab_activated' | 'lab_deactivated' | 'phlebotomist_registered' | 'phlebotomist_unavailable' | 'patient_activated' | 'patient_deactivated' | 'order_created' | 'new_order' | 'order_cancelled' | 'order_status_updated' | 'phlebotomist_request_sent' | 'phlebotomist_request_accepted' | 'phlebotomist_request_rejected' | 'phlebotomist_assigned' | 'general';
     title: string;
     message: string;
     relatedBooking?: mongoose.Types.ObjectId;
@@ -37,6 +37,12 @@ const notificationSchema = new Schema<INotification>(
             type: String,
             required: true,
             enum: [
+                'status_update',
+                'report_uploaded',
+                'booking_created',
+                'booking_cancelled',
+                'booking_assigned',
+                'new_message',
                 'booking_confirmed',
                 'sample_collected',
                 'report_ready',
@@ -46,12 +52,17 @@ const notificationSchema = new Schema<INotification>(
                 'lab_activated',
                 'lab_deactivated',
                 'phlebotomist_registered',
+                'phlebotomist_unavailable',
                 'patient_activated',
                 'patient_deactivated',
                 'order_created',
                 'new_order',
                 'order_cancelled',
                 'order_status_updated',
+                'phlebotomist_request_sent',
+                'phlebotomist_request_accepted',
+                'phlebotomist_request_rejected',
+                'phlebotomist_assigned',
                 'general'
             ],
         },

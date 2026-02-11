@@ -15,7 +15,8 @@ import {
   Image as ImageIcon,
   Check,
   Download,
-  X
+  X,
+  Lock
 } from "lucide-react";
 import { useSocket } from "@/contexts/SocketContext";
 import { chatService } from "@/services/chat.service";
@@ -25,7 +26,7 @@ import { bookingService } from "@/services/booking.service";
 type Message = {
   _id: string;
   conversation: string;
-  sender: "patient" | "lab";
+  sender: "patient" | "lab" | "phlebotomist";
   content: string;
   createdAt: string;
   status: "sent" | "delivered" | "read";
@@ -40,10 +41,11 @@ type Message = {
 type Conversation = {
   _id: string;
   patient: { _id: string; fullName: string; email: string };
-  lab: { _id: string; labName: string; email: string };
+  lab?: { _id: string; labName: string; email: string };
+  phlebotomist?: { _id: string; fullName: string; email: string };
   lastMessage: string;
   lastMessageAt: string;
-  unreadCount: { patient: number; lab: number };
+  unreadCount: { patient: number; lab: number; phlebotomist: number };
 };
 
 const MessageStatusIcon = ({ status }: { status: string }) => {
@@ -62,13 +64,10 @@ const AttachmentPreview = ({ messageId, attachment, index, token }: { messageId:
     if (attachment.contentType.startsWith('image/')) {
       setLoading(true);
       setError(false);
-      console.log(`Fetching image: msg=${messageId}, idx=${index}, type=${attachment.contentType}`);
 
       chatService.fetchAttachmentBlob(messageId, index, token)
         .then(blob => {
-          console.log(`Fetched blob: size=${blob.size}, type=${blob.type}`);
           if (blob.size === 0) {
-            console.warn("Blob is empty!");
             setError(true);
             return;
           }
@@ -156,14 +155,17 @@ const AttachmentPreview = ({ messageId, attachment, index, token }: { messageId:
 const PatientMessages: React.FC = () => {
   const { socket } = useSocket();
   const { token, user } = useAuth();
+  const [chatType, setChatType] = useState<'lab' | 'phlebotomist'>('lab');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [availableLabs, setAvailableLabs] = useState<{ _id: string; labName: string }[]>([]);
+  const [availablePhlebotomists, setAvailablePhlebotomists] = useState<{ _id: string; fullName: string }[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -174,44 +176,61 @@ const PatientMessages: React.FC = () => {
       chatService.getConversations(token).then((data) => {
         if (data.success) {
           setConversations(data.conversations);
-          if (data.conversations.length > 0 && !selectedChatId) {
-            setSelectedChatId(data.conversations[0]._id);
-            setSelectedLabId(data.conversations[0].lab._id);
-          }
         }
       });
 
-      // Fetch Bookings to find available labs
+      // Fetch Bookings to find available labs and phlebotomists
       bookingService.getPatientBookings(user.id, token).then((data) => {
         if (data.success) {
-          // Extract unique labs from bookings
-          const labs = new Map();
-          // API returns { success: true, data: [...] }
           const bookings = data.data || [];
+
+          // Extract unique labs
+          const labs = new Map();
           bookings.forEach((b: any) => {
             if (b.lab) {
               labs.set(b.lab._id, b.lab);
             }
           });
           setAvailableLabs(Array.from(labs.values()));
+
+          // Extract unique phlebotomists
+          const phlebotomists = new Map();
+          bookings.forEach((b: any) => {
+            if (b.phlebotomist) {
+              phlebotomists.set(b.phlebotomist._id, b.phlebotomist);
+            }
+          });
+          setAvailablePhlebotomists(Array.from(phlebotomists.values()));
+
+          // Auto-select first available contact
+          if (chatType === 'lab' && labs.size > 0) {
+            const firstLab = Array.from(labs.values())[0];
+            setSelectedContactId(firstLab._id);
+          } else if (chatType === 'phlebotomist' && phlebotomists.size > 0) {
+            const firstPhleb = Array.from(phlebotomists.values())[0];
+            setSelectedContactId(firstPhleb._id);
+          }
         }
       });
     }
-  }, [token, user]);
+  }, [token, user, chatType]);
 
   // Handle Chat Selection (Create if not exists)
-  const handleChatSelect = async (labId: string) => {
-    setSelectedLabId(labId);
+  const handleChatSelect = async (contactId: string) => {
+    setSelectedContactId(contactId);
 
     // Check if conversation already exists
-    const existingConv = conversations.find(c => c.lab._id === labId);
+    const existingConv = conversations.find(c =>
+      chatType === 'lab' ? c.lab?._id === contactId : c.phlebotomist?._id === contactId
+    );
+
     if (existingConv) {
       setSelectedChatId(existingConv._id);
     } else {
       // Create new conversation
       if (token) {
         try {
-          const data = await chatService.createConversation(labId, token);
+          const data = await chatService.createConversation(contactId, token, chatType);
           if (data.success) {
             setConversations(prev => [data.conversation, ...prev]);
             setSelectedChatId(data.conversation._id);
@@ -221,6 +240,15 @@ const PatientMessages: React.FC = () => {
         }
       }
     }
+  };
+
+  // Switch chat type
+  const handleChatTypeChange = (type: 'lab' | 'phlebotomist') => {
+    setChatType(type);
+    setSelectedChatId(null);
+    setSelectedContactId(null);
+    setMessages([]);
+    setIsLocked(false);
   };
 
   // Fetch Messages & Join Room
@@ -245,7 +273,6 @@ const PatientMessages: React.FC = () => {
 
     socket.on("new_message", (message: Message) => {
       if (selectedChatId && message.conversation === selectedChatId) {
-        // Deduplicate based on _id
         setMessages((prev) => {
           if (prev.some(m => m._id === message._id)) return prev;
           return [...prev, message];
@@ -265,9 +292,16 @@ const PatientMessages: React.FC = () => {
       }
     });
 
+    socket.on("conversation_locked", ({ conversationId }) => {
+      if (conversationId === selectedChatId) {
+        setIsLocked(true);
+      }
+    });
+
     return () => {
       socket.off("new_message");
       socket.off("messages_read");
+      socket.off("conversation_locked");
     };
   }, [socket, selectedChatId, token]);
 
@@ -277,15 +311,13 @@ const PatientMessages: React.FC = () => {
   }, [messages]);
 
   const sendMessage = async () => {
-    if ((!input.trim() && files.length === 0) || !selectedChatId || !token) {
+    if ((!input.trim() && files.length === 0) || !selectedChatId || !token || isLocked) {
       return;
     }
 
     try {
       const data = await chatService.sendMessage(selectedChatId, input, files, token);
       if (data.success) {
-        // Optimistically add message if not already added by socket (socket is usually faster or simultaneous)
-        // But to be safe and instant:
         setMessages((prev) => {
           if (prev.some(m => m._id === data.message._id)) return prev;
           return [...prev, data.message];
@@ -295,7 +327,6 @@ const PatientMessages: React.FC = () => {
         setErrorMessage(null);
       } else {
         setErrorMessage(data.message || "Failed to send message");
-        // Auto-hide after 5 seconds
         setTimeout(() => setErrorMessage(null), 5000);
       }
     } catch (error) {
@@ -310,6 +341,7 @@ const PatientMessages: React.FC = () => {
     }
   };
 
+  const currentContacts = chatType === 'lab' ? availableLabs : availablePhlebotomists;
   const selectedConversation = conversations.find(c => c._id === selectedChatId);
 
   return (
@@ -320,7 +352,7 @@ const PatientMessages: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Messages</h1>
           <p className="text-muted-foreground">
-            Chat with your lab regarding your bookings.
+            Chat with your lab or phlebotomist regarding your bookings.
           </p>
         </div>
 
@@ -328,21 +360,42 @@ const PatientMessages: React.FC = () => {
 
           {/* CHAT PANEL */}
           <Card className="lg:col-span-2 p-4 rounded-xl shadow-md bg-card flex flex-col h-full overflow-hidden">
+
+            {/* Chat Type Selector */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={chatType === 'lab' ? 'default' : 'outline'}
+                onClick={() => handleChatTypeChange('lab')}
+                className="flex-1"
+              >
+                Chat with Lab
+              </Button>
+              <Button
+                variant={chatType === 'phlebotomist' ? 'default' : 'outline'}
+                onClick={() => handleChatTypeChange('phlebotomist')}
+                className="flex-1"
+              >
+                Chat with Phlebotomist
+              </Button>
+            </div>
+
             {/* Top bar */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-primary" />
-                {selectedChatId ? `Chat with ${conversations.find(c => c._id === selectedChatId)?.lab.labName}` : 'Select a Lab to Chat'}
+                {selectedChatId ? `Chat with ${chatType === 'lab' ? selectedConversation?.lab?.labName : selectedConversation?.phlebotomist?.fullName}` : `Select ${chatType === 'lab' ? 'Lab' : 'Phlebotomist'} to Chat`}
               </h2>
 
               <select
-                value={selectedLabId || ""}
+                value={selectedContactId || ""}
                 onChange={(e) => handleChatSelect(e.target.value)}
                 className="border px-3 py-1 rounded-md text-sm"
               >
-                <option value="" disabled>Select Lab</option>
-                {availableLabs.map((lab) => (
-                  <option key={lab._id} value={lab._id}>{lab.labName}</option>
+                <option value="" disabled>Select {chatType === 'lab' ? 'Lab' : 'Phlebotomist'}</option>
+                {currentContacts.map((contact: any) => (
+                  <option key={contact._id} value={contact._id}>
+                    {chatType === 'lab' ? contact.labName : contact.fullName}
+                  </option>
                 ))}
               </select>
             </div>
@@ -410,30 +463,38 @@ const PatientMessages: React.FC = () => {
               </div>
             )}
 
-            {/* Input */}
-            <div className="flex gap-3 mt-4 p-2 border bg-background rounded-xl items-center">
-              <input
-                type="file"
-                multiple
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,application/pdf"
-                onChange={handleFileSelect}
-              />
-              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip className="h-4 w-4 text-muted-foreground" />
-              </Button>
-              <Input
-                placeholder="Type your message..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                className="flex-1"
-              />
-              <Button onClick={sendMessage} disabled={!input.trim() && files.length === 0}>
-                <Send className="h-4 w-4 mr-1" /> Send
-              </Button>
-            </div>
+            {/* Locked Message or Input */}
+            {isLocked ? (
+              <div className="mt-4 p-4 bg-muted/50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center">
+                <Lock className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="font-semibold">Report Uploaded - Chat Closed</p>
+                <p className="text-sm text-muted-foreground">This conversation is now read-only</p>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-4 p-2 border bg-background rounded-xl items-center">
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileSelect}
+                />
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Input
+                  placeholder="Type your message..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  className="flex-1"
+                />
+                <Button onClick={sendMessage} disabled={!input.trim() && files.length === 0}>
+                  <Send className="h-4 w-4 mr-1" /> Send
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* RIGHT SIDE DASHBOARD CARDS */}
@@ -445,7 +506,7 @@ const PatientMessages: React.FC = () => {
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Active Chats</p>
                   <p className="text-2xl font-bold mt-1">{conversations.length} Chats</p>
-                  <p className="text-xs text-muted-foreground mt-1">You’re in touch with Labs</p>
+                  <p className="text-xs text-muted-foreground mt-1">Stay connected</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <MessageCircle className="h-6 w-6" />
@@ -459,7 +520,7 @@ const PatientMessages: React.FC = () => {
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Avg Response Time</p>
                   <p className="text-2xl font-bold mt-1">~5 min</p>
-                  <p className="text-xs text-muted-foreground mt-1">Labs reply quickly during working hours.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Quick replies during hours</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                   <Clock className="h-6 w-6" />
@@ -473,7 +534,7 @@ const PatientMessages: React.FC = () => {
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Upcoming Tests</p>
                   <p className="text-2xl font-bold mt-1">3 Tests</p>
-                  <p className="text-xs text-muted-foreground mt-1">Use chat to confirm fasting & timing.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Confirm via chat</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                   <TestTube className="h-6 w-6" />

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { getToken } from "@/utils/storage";
 import { toast } from "sonner";
 
 import {
@@ -24,9 +25,11 @@ import {
   Filter,
   CheckCircle2,
   Loader2,
+  UserPlus,
 } from "lucide-react";
+import { phlebotomistRequestService } from "@/services/phlebotomistRequestService";
 
-type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
+type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "sample_collected" | "completed" | "cancelled";
 
 interface Appointment {
   _id: string;
@@ -48,6 +51,11 @@ interface Appointment {
   status: AppointmentStatus;
   totalAmount: number;
   notes?: string;
+  sampleCollection?: {
+    collectedAt: string;
+    sampleId?: string;
+    notes?: string;
+  };
 }
 
 type Props = {
@@ -66,6 +74,9 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
   const [viewing, setViewing] = useState<Appointment | null>(null);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
+  const [assigning, setAssigning] = useState<Appointment | null>(null);
+  const [availablePhlebotomists, setAvailablePhlebotomists] = useState<any[]>([]);
+  const [loadingPhlebotomists, setLoadingPhlebotomists] = useState(false);
 
   // Fetch appointments from API
   useEffect(() => {
@@ -73,7 +84,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -117,7 +128,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
   const updateAppointment = async (updated: Appointment) => {
     try {
-      const token = localStorage.getItem('lab2home_token');
+      const token = getToken();
       const response = await fetch(`http://localhost:5000/api/bookings/${updated._id}/status`, {
         method: 'PUT',
         headers: {
@@ -145,7 +156,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
   const deleteAppointment = async (id: string) => {
     try {
-      const token = localStorage.getItem('lab2home_token');
+      const token = getToken();
       const response = await fetch(`http://localhost:5000/api/bookings/${id}`, {
         method: 'DELETE',
         headers: {
@@ -164,6 +175,45 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
     } catch (error) {
       console.error('Error cancelling appointment:', error);
       toast.error('Failed to cancel appointment');
+    }
+  };
+
+  const fetchAvailablePhlebotomists = async (bookingId: string) => {
+    setLoadingPhlebotomists(true);
+    try {
+      const response = await phlebotomistRequestService.getAvailablePhlebotomists(bookingId);
+      if (response.success) {
+        setAvailablePhlebotomists(response.data || []);
+      } else {
+        toast.error('Failed to load available phlebotomists');
+      }
+    } catch (error) {
+      console.error('Error fetching phlebotomists:', error);
+      toast.error('Error loading phlebotomists');
+    } finally {
+      setLoadingPhlebotomists(false);
+    }
+  };
+
+  useEffect(() => {
+    if (assigning) {
+      fetchAvailablePhlebotomists(assigning._id);
+    }
+  }, [assigning]);
+
+  const handleSendAssignmentRequest = async (phlebotomistId: string) => {
+    if (!assigning) return;
+    try {
+      const response = await phlebotomistRequestService.sendRequest(assigning._id, phlebotomistId);
+      if (response.success) {
+        toast.success('Assignment request sent successfully');
+        setAssigning(null);
+      } else {
+        toast.error(response.message || 'Failed to send request');
+      }
+    } catch (error) {
+      console.error('Error sending request:', error);
+      toast.error('Error sending assignment request');
     }
   };
 
@@ -238,6 +288,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="in-progress">In Progress</option>
+                <option value="sample_collected">Sample Collected</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -279,10 +330,12 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                             ? "bg-green-100 text-green-700"
                             : item.status === "cancelled"
                               ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
+                              : item.status === "sample_collected"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-amber-100 text-amber-700"
                         }
                       >
-                        {item.status}
+                        {item.status.replace('_', ' ')}
                       </Badge>
                     </div>
 
@@ -317,6 +370,15 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                       >
                         <Trash2 className="h-3 w-3" /> Cancel
                       </Button>
+                      {(item.status === 'confirmed' || item.status === 'pending') && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setAssigning(item)}
+                        >
+                          <UserPlus className="h-3 w-3" /> Assign
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 ))
@@ -373,6 +435,20 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                 <p><strong>Total Amount:</strong> Rs. {viewing.totalAmount}</p>
                 {viewing.notes && (
                   <p><strong>Notes:</strong> {viewing.notes}</p>
+                )}
+
+                {viewing.sampleCollection && (
+                  <div className="mt-4 p-3 bg-muted rounded-md space-y-2 border border-border">
+                    <p className="font-semibold text-primary flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Sample Collection Details
+                    </p>
+                    <p><strong>Sample ID:</strong> {viewing.sampleCollection.sampleId || 'N/A'}</p>
+                    <p><strong>Collected At:</strong> {new Date(viewing.sampleCollection.collectedAt).toLocaleString()}</p>
+                    {viewing.sampleCollection.notes && (
+                      <p><strong>Collection Notes:</strong> {viewing.sampleCollection.notes}</p>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -471,6 +547,77 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                   }}
                 >
                   Yes, Cancel
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ASSIGN MODAL */}
+        {assigning && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <Card className="w-[600px] bg-white p-6 rounded-xl shadow-xl max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <UserPlus className="h-4 w-4 text-primary" />
+                  Assign Phlebotomist
+                </h2>
+                <Button variant="ghost" size="icon" onClick={() => setAssigning(null)}>
+                  ✕
+                </Button>
+              </div>
+
+              <div className="mb-4 text-sm bg-gray-50 p-3 rounded-md">
+                <p><strong>Booking for:</strong> {assigning.patient.fullName}</p>
+                <p><strong>Tests:</strong> {assigning.tests.map(t => t.name).join(', ')}</p>
+                <p><strong>Time:</strong> {assigning.preferredTimeSlot}, {new Date(assigning.bookingDate).toLocaleDateString()}</p>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Available Phlebotomists</h3>
+
+                {loadingPhlebotomists ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : availablePhlebotomists.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground bg-gray-50 rounded-lg">
+                    No available phlebotomists found for this slot.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {availablePhlebotomists.map((phlebotomist) => (
+                      <div key={phlebotomist._id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 transition">
+                        <div>
+                          <p className="font-medium text-sm">{phlebotomist.name}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> {phlebotomist.distance ? `${phlebotomist.distance.toFixed(1)} km away` : 'Unknown distance'}
+                          </p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="text-[10px] h-5">
+                              {phlebotomist.pendingRequests || 0} Pending
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] h-5 bg-blue-50">
+                              {phlebotomist.currentLoad || 0} Active
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSendAssignmentRequest(phlebotomist._id)}
+                          className="bg-primary text-white hover:bg-primary/90"
+                        >
+                          Send Request
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setAssigning(null)}>
+                  Cancel
                 </Button>
               </div>
             </Card>

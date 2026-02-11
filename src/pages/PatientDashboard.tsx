@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { getToken } from "@/utils/storage";
 import {
   TestTube,
   FileCheck,
@@ -80,7 +81,7 @@ const PatientDashboard = () => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         const response = await fetch(`http://localhost:5000/api/bookings/patient/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`

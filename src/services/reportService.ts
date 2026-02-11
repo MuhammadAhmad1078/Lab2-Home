@@ -2,6 +2,8 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+import { getToken } from '@/utils/storage';
+
 export interface ReportBooking {
     _id: string;
     tests: Array<{
@@ -30,7 +32,7 @@ export interface ReportBooking {
  */
 export const getPatientReports = async (patientId: string): Promise<ReportBooking[]> => {
     try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         const response = await axios.get(`${API_URL}/bookings/patient/${patientId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -63,7 +65,7 @@ export const getReportUrl = (bookingId: string): string => {
  */
 export const downloadReport = async (bookingId: string, testName: string): Promise<void> => {
     try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         const url = getReportUrl(bookingId);
 
         const response = await axios.get(url, {

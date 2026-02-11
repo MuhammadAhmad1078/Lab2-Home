@@ -806,39 +806,37 @@ export const sendPhlebotomistApprovalEmail = async (
           <div class="features-box">
             <h3 style="margin-top: 0; color: #10b981;">You Can Now:</h3>
             <div class="feature-item">
-              ✅ <strong>Login to Your Dashboard</strong> - Access your phlebotomist portal
+              ✅ <strong>Login to Your Dashboard</strong> - Access your assigned tasks
             </div>
             <div class="feature-item">
               ✅ <strong>Accept Assignments</strong> - Receive and manage sample collection requests
             </div>
             <div class="feature-item">
-              ✅ <strong>Update Your Location</strong> - Let labs know where you are
+              ✅ <strong>View Patient Details</strong> - See location and test requirements
             </div>
             <div class="feature-item">
-              ✅ <strong>Manage Your Profile</strong> - Update your information and qualifications
+              ✅ <strong>Update Status</strong> - Mark samples as collected and delivered
             </div>
             <div class="feature-item">
-              ✅ <strong>Track Your Work</strong> - View your assignment history and performance
+              ✅ <strong>Track Earnings</strong> - View your completed tasks and earnings
             </div>
           </div>
           
           <p><strong>Getting Started:</strong></p>
           <ol>
             <li>Login to your dashboard using your registered email</li>
-            <li>Complete your profile with availability details</li>
-            <li>Enable location services for better assignment matching</li>
-            <li>Start accepting sample collection assignments!</li>
+            <li>Mark yourself as "Available" to receive requests</li>
+            <li>Accept incoming assignments from labs</li>
+            <li>Start collecting samples!</li>
           </ol>
           
           <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" class="button">Login to Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="button">Login to Dashboard</a>
           </div>
-          
-          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
           
           <div class="footer">
             <p>© 2025 Lab2Home. All rights reserved.</p>
-            <p>Welcome to the Lab2Home family! 🏥</p>
+            <p>Welcome to the Lab2Home team! 🩸</p>
           </div>
         </div>
       </div>
@@ -846,6 +844,215 @@ export const sendPhlebotomistApprovalEmail = async (
     </html>
   `;
 
+  await sendEmail({ to: email, subject, html });
+};
+
+// ============================================
+// PHLEBOTOMIST ASSIGNMENT EMAILS
+// ============================================
+
+export const sendPhlebotomistRequestEmail = async (
+  email: string,
+  phlebotomistName: string,
+  labName: string,
+  patientName: string,
+  date: string,
+  time: string
+): Promise<void> => {
+  const subject = `New Assignment Request from ${labName} 📋`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+        .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🏥 Lab2Home</h1>
+          <p>New Assignment Request</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${phlebotomistName}! 👋</h2>
+          <p><strong>${labName}</strong> has sent you a new sample collection request.</p>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #667eea;">Booking Details</h3>
+            <p><strong>Patient:</strong> ${patientName}</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+          </div>
+          
+          <p>Please log in to your dashboard to accept or reject this request.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/phlebotomist/appointments" class="button">View Request</a>
+          </div>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  await sendEmail({ to: email, subject, html });
+};
+
+export const sendRequestAcceptedEmail = async (
+  email: string,
+  labName: string,
+  phlebotomistName: string,
+  patientName: string,
+  date: string
+): Promise<void> => {
+  const subject = `Request Accepted by ${phlebotomistName} ✅`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Request Accepted!</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName},</h2>
+          
+          <div class="info-box">
+            <p><strong>${phlebotomistName}</strong> has accepted your assignment request for patient <strong>${patientName}</strong> on <strong>${date}</strong>.</p>
+          </div>
+          
+          <p>The booking status has been updated to <strong>Confirmed</strong>.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  await sendEmail({ to: email, subject, html });
+};
+
+export const sendRequestRejectedEmail = async (
+  email: string,
+  labName: string,
+  phlebotomistName: string,
+  reason: string,
+  date: string
+): Promise<void> => {
+  const subject = `Request Declined by ${phlebotomistName} ❌`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .reason-box { background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Request Declined</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${labName},</h2>
+          
+          <p><strong>${phlebotomistName}</strong> has declined your assignment request for the appointment on <strong>${date}</strong>.</p>
+          
+          <div class="reason-box">
+            <strong>Reason:</strong> ${reason}
+          </div>
+          
+          <p>Please review the booking and assign another phlebotomist.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  await sendEmail({ to: email, subject, html });
+};
+
+export const sendPhlebotomistAssignedEmail = async (
+  email: string,
+  patientName: string,
+  phlebotomistName: string,
+  phlebotomistPhone: string,
+  date: string,
+  time: string
+): Promise<void> => {
+  const subject = `Phlebotomist Assigned for Your Appointment 👨‍⚕️`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🏥 Lab2Home</h1>
+          <p>Phlebotomist Assigned</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${patientName}! 👋</h2>
+          <p>A phlebotomist has been assigned for your upcoming appointment.</p>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #667eea;">Phlebotomist Details</h3>
+            <p><strong>Name:</strong> ${phlebotomistName}</p>
+            <p><strong>Phone:</strong> ${phlebotomistPhone}</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+          </div>
+          
+          <p>The phlebotomist will arrive at your location at the scheduled time.</p>
+          
+          <div class="footer">
+            <p>© 2025 Lab2Home. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
   await sendEmail({ to: email, subject, html });
 };
 
@@ -1286,7 +1493,7 @@ export const sendOrderConfirmationEmail = async (
   const itemsHtml = items.map(item => `
     <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
       <span style="color: #333;">${item.productName} (x${item.quantity})</span>
-      <span style="font-weight: bold;">Rs. ${(item.price * item.quantity).toFixed(2)}</span>
+      <span style="font-weight: bold;">Rs.${(item.price * item.quantity).toFixed(2)}</span>
     </div>
   `).join('');
 
@@ -1324,10 +1531,10 @@ export const sendOrderConfirmationEmail = async (
             ${itemsHtml}
             <div class="total-row">
               <span>Total Amount</span>
-              <span style="color: #667eea;">Rs. ${total.toFixed(2)}</span>
+              <span style="color: #667eea;">Rs.${total.toFixed(2)}</span>
             </div>
           </div>
-
+          
           <div class="address-box">
             <strong>Shipping to:</strong><br>
             ${shippingAddress}
@@ -1420,7 +1627,7 @@ export const sendOrderStatusUpdateEmail = async (
           <div style="text-align: center;">
             <span class="status-badge">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
           </div>
-
+          
           ${trackingHtml}
           
           <div style="text-align: center; margin-top: 20px;">
@@ -1497,7 +1704,7 @@ export const sendAdminNewOrderEmail = async (
             </div>
             <div class="info-row" style="border-bottom: none;">
               <span class="info-label">Total Amount:</span>
-              <span style="font-weight: bold; color: #0284c7;">Rs. ${total.toFixed(2)}</span>
+              <span style="font-weight: bold; color: #0284c7;">Rs.${total.toFixed(2)}</span>
             </div>
           </div>
           

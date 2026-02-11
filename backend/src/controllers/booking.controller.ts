@@ -171,6 +171,15 @@ export const getPatientBookings = async (req: Request, res: Response): Promise<v
         const { patientId } = req.params;
         const { status } = req.query;
 
+        // Authorization: Ensure the requesting user is the patient
+        if (req.user?.userType !== 'patient' || req.user?.id.toString() !== patientId.toString()) {
+            res.status(403).json({
+                success: false,
+                message: 'You are not authorized to access these bookings',
+            });
+            return;
+        }
+
         const query: any = { patient: patientId };
         if (status) {
             query.status = status;
@@ -204,6 +213,15 @@ export const getLabBookings = async (req: Request, res: Response): Promise<void>
     try {
         const { labId } = req.params;
         const { status, date } = req.query;
+
+        // Authorization: Ensure the requesting user is the lab
+        if (req.user?.userType !== 'lab' || req.user?.id.toString() !== labId.toString()) {
+            res.status(403).json({
+                success: false,
+                message: 'You are not authorized to access these bookings',
+            });
+            return;
+        }
 
         const query: any = { lab: labId };
         if (status) {
@@ -388,6 +406,34 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
             }
         }
 
+        // Send notification to phlebotomist if newly assigned
+        if (phlebotomist && (!booking.phlebotomist || booking.phlebotomist.toString() !== phlebotomist)) {
+            try {
+                const { createNotification } = await import('./notification.controller');
+                const testNames = (booking.tests as any[]).map(t => t.name).join(', ');
+
+                await createNotification({
+                    user: phlebotomist,
+                    userType: 'phlebotomist',
+                    type: 'booking_assigned',
+                    title: 'New Booking Assigned 📋',
+                    message: `You have been assigned to collect samples for ${testNames} on ${new Date(booking.bookingDate).toLocaleDateString()}.`,
+                    relatedBooking: booking._id.toString(),
+                    metadata: {
+                        patientName: (booking.patient as any).fullName,
+                        testNames,
+                        bookingDate: booking.bookingDate,
+                        timeSlot: booking.preferredTimeSlot,
+                        collectionAddress: booking.collectionAddress || (booking.lab as any).labAddress,
+                    }
+                });
+
+                console.log(`✅ Phlebotomist notification sent for booking assignment`);
+            } catch (notificationError) {
+                console.error('❌ Failed to send phlebotomist notification:', notificationError);
+            }
+        }
+
         res.status(200).json({
             success: true,
             message: 'Booking status updated successfully',
@@ -540,6 +586,30 @@ export const uploadReport = async (req: Request, res: Response): Promise<void> =
             } catch (notificationError) {
                 console.error('❌ Failed to send report notifications:', notificationError);
             }
+        }
+
+        // Lock conversations related to this booking
+        try {
+            const Conversation = (await import('../models/Conversation')).default;
+            const { getIO } = await import('../server');
+
+            // Find all conversations linked to this booking
+            const conversations = await Conversation.find({ booking: id });
+
+            // Emit socket event to lock conversations
+            const io = getIO();
+            if (io) {
+                conversations.forEach(conv => {
+                    io.to(conv._id.toString()).emit('conversation_locked', {
+                        conversationId: conv._id,
+                        bookingId: id,
+                        message: 'Report has been uploaded. This conversation is now read-only.'
+                    });
+                });
+                console.log(`✅ Locked ${conversations.length} conversation(s) for booking ${id}`);
+            }
+        } catch (lockError) {
+            console.error('❌ Failed to lock conversations:', lockError);
         }
 
         res.status(200).json({
