@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/shared/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,43 +7,163 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { QrCode, TestTube, Save } from "lucide-react";
+import { QrCode, TestTube, Save, Loader2, RefreshCw } from "lucide-react";
+import { phlebotomistService } from "@/services/phlebotomist.service";
+
+interface Booking {
+    _id: string;
+    patient: {
+        fullName: string;
+        phone: string;
+    };
+    tests: Array<{ name: string; category: string }>;
+    bookingDate: string;
+    preferredTimeSlot: string;
+    status: string;
+}
 
 const PhlebotomistSamples = () => {
-    const [sampleId, setSampleId] = useState("");
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const initialBookingId = searchParams.get('bookingId');
 
-    // Mock State for the form
-    const [formData, setFormData] = useState({
-        patientName: "",
-        testType: "",
-        collectionSite: "",
-        notes: ""
-    });
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedBookingId, setSelectedBookingId] = useState<string>(initialBookingId || "");
+    const [sampleId, setSampleId] = useState("");
+    const [notes, setNotes] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch active bookings
+    const fetchBookings = async () => {
+        setLoading(true);
+        try {
+            const response = await phlebotomistService.getAssignedBookings({ status: 'in-progress' });
+            if (response.success) {
+                setBookings(response.data || []);
+            }
+        } catch (error) {
+            console.error("Failed to load bookings", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookings();
+    }, []);
+
+    useEffect(() => {
+        if (initialBookingId) {
+            setSelectedBookingId(initialBookingId);
+        }
+    }, [initialBookingId]);
+
+    const selectedBooking = bookings.find(b => b._id === selectedBookingId);
 
     const handleScan = () => {
-        // In a real app, this would open a camera or accept QR input
-        setSampleId("SMP-" + Math.floor(Math.random() * 10000));
-        toast.info("Mock QR Code Scanned!");
+        // Mock Scan
+        const newCode = "SMP-" + Math.floor(Math.random() * 100000);
+        setSampleId(newCode);
+        toast.info("Mock QR Code Scanned: " + newCode);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        toast.success("Sample Data Logged Successfully!");
-        setFormData({ patientName: "", testType: "", collectionSite: "", notes: "" });
-        setSampleId("");
+
+        if (!selectedBookingId) {
+            toast.error("Please select a booking first.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await phlebotomistService.updateBookingStatus(
+                selectedBookingId,
+                'sample_collected',
+                notes,
+                {
+                    sampleId: sampleId,
+                    collectedAt: new Date()
+                }
+            );
+
+            if (response.success) {
+                toast.success("Sample Collection Logged Successfully!");
+                setSampleId("");
+                setNotes("");
+                setSelectedBookingId("");
+                // Refresh list
+                fetchBookings();
+                // Optionally redirect back to list
+                navigate('/phlebotomist/appointments');
+            } else {
+                toast.error(response.message || "Failed to log sample collection");
+            }
+        } catch (error) {
+            console.error("Submission error", error);
+            toast.error("An error occurred while logging the sample.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <DashboardLayout role="phlebotomist">
+                <div className="flex items-center justify-center h-96">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout role="phlebotomist">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-foreground">Sample Collection</h1>
-                <p className="text-muted-foreground">Log new samples and label them</p>
+                <p className="text-muted-foreground">Log details for collected samples</p>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
                 {/* Entry Form */}
                 <Card className="p-6 shadow-soft order-2 lg:order-1">
                     <form onSubmit={handleSubmit} className="space-y-6">
+
+                        {/* Booking Selection */}
+                        <div className="space-y-2">
+                            <Label>Select Patient / Appointment</Label>
+                            <Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select active appointment" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bookings.length === 0 ? (
+                                        <div className="p-2 text-sm text-muted-foreground">No in-progress appointments</div>
+                                    ) : (
+                                        bookings.map(b => (
+                                            <SelectItem key={b._id} value={b._id}>
+                                                {b.patient.fullName} - {b.tests.map(t => t.name).join(', ')}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            {bookings.length === 0 && (
+                                <p className="text-xs text-amber-600">
+                                    Note: You must mark an appointment as "In Progress" from the Appointments page first.
+                                </p>
+                            )}
+                        </div>
+
+                        {selectedBooking && (
+                            <div className="bg-primary/5 p-4 rounded-md border border-primary/10 text-sm space-y-1">
+                                <p><strong>Patient:</strong> {selectedBooking.patient.fullName}</p>
+                                <p><strong>Phone:</strong> {selectedBooking.patient.phone}</p>
+                                <p><strong>Tests:</strong> {selectedBooking.tests.map(t => t.name).join(', ')}</p>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <Label>Sample ID / Barcode</Label>
@@ -65,51 +186,17 @@ const PhlebotomistSamples = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Patient Name</Label>
-                            <Input
-                                placeholder="Enter patient name"
-                                value={formData.patientName}
-                                onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
-                                required
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Test Type</Label>
-                                <Select onValueChange={(v) => setFormData({ ...formData, testType: v })}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="blood">Blood</SelectItem>
-                                        <SelectItem value="urine">Urine</SelectItem>
-                                        <SelectItem value="swab">Swab</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Collection Site</Label>
-                                <Input
-                                    placeholder="e.g. Left Arm"
-                                    value={formData.collectionSite}
-                                    onChange={(e) => setFormData({ ...formData, collectionSite: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
                             <Label>Notes (Optional)</Label>
                             <Input
-                                placeholder="Any difficulty or remarks..."
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                placeholder="Any difficulty or observations..."
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
                             />
                         </div>
 
-                        <Button type="submit" className="w-full gap-2">
-                            <Save className="h-4 w-4" />
-                            Log Sample
+                        <Button type="submit" className="w-full gap-2" disabled={!selectedBookingId || isSubmitting}>
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                            Log Sample Collection
                         </Button>
                     </form>
                 </Card>
@@ -123,23 +210,23 @@ const PhlebotomistSamples = () => {
                     <ul className="space-y-3 text-sm text-foreground/80">
                         <li className="flex gap-2">
                             <span className="font-bold text-primary">1.</span>
-                            Verify patient identity using ID card.
+                            Set Appointment to "In Progress" before collecting.
                         </li>
                         <li className="flex gap-2">
                             <span className="font-bold text-primary">2.</span>
-                            Ensure all tubes are labelled immediately after collection.
+                            Verify patient identity using ID card.
                         </li>
                         <li className="flex gap-2">
                             <span className="font-bold text-primary">3.</span>
-                            Keep samples at appropriate temperature during transport.
+                            Ensure all tubes are labelled immediately.
                         </li>
                         <li className="flex gap-2">
                             <span className="font-bold text-primary">4.</span>
-                            Scan the barcode to link the physical tube to the digital record.
+                            Scan barcode to link tube to digital record.
                         </li>
                         <li className="flex gap-2">
                             <span className="font-bold text-primary">5.</span>
-                            Mark appointment as "Completed" after successful collection.
+                            Submitting this form completes the collection task.
                         </li>
                     </ul>
                 </Card>

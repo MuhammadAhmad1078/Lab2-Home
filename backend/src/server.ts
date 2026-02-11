@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import connectDatabase from './config/database';
 import authRoutes from './routes/auth.routes';
 import phlebotomistRoutes from './routes/phlebotomist.routes';
+import phlebotomistRequestRoutes from './routes/phlebotomistRequest.routes';
 import testRoutes from './routes/test.routes';
 import bookingRoutes from './routes/booking.routes';
 import labRoutes from './routes/lab.routes';
@@ -37,6 +38,9 @@ const io = new Server(httpServer, {
 // Setup Socket.io
 initializeSocket(io);
 setIO(io);
+
+// Export getIO function for other controllers
+export const getIO = () => io;
 
 // Middleware
 app.use(cors({
@@ -73,6 +77,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/phlebotomist', phlebotomistRoutes);
+app.use('/api/phlebotomist-request', phlebotomistRequestRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);

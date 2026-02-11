@@ -127,7 +127,7 @@ export const authAPI = {
     formData.append('password', data.password);
 
     // Don't use apiRequest for file uploads - fetch directly
-    const token = localStorage.getItem('lab2home_token');
+    const token = storage.getToken();
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -177,7 +177,7 @@ export const authAPI = {
     formData.append('trafficLicenseCopy', data.trafficLicenseCopy);
 
     // Don't use apiRequest for file uploads - fetch directly
-    const token = localStorage.getItem('lab2home_token');
+    const token = storage.getToken();
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -288,7 +288,7 @@ export const uploadReport = async (bookingId: string, file: File): Promise<ApiRe
   const formData = new FormData();
   formData.append('report', file);
 
-  const token = localStorage.getItem('lab2home_token');
+  const token = storage.getToken();
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

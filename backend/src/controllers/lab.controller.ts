@@ -80,6 +80,15 @@ export const updateLabTests = async (req: Request, res: Response): Promise<void>
         const { id } = req.params;
         const { testIds } = req.body;
 
+        // Authorization: Ensure the requesting user is the lab
+        if (req.user?.userType !== 'lab' || req.user?.id.toString() !== id.toString()) {
+            res.status(403).json({
+                success: false,
+                message: 'You are not authorized to update this lab',
+            });
+            return;
+        }
+
         if (!testIds || !Array.isArray(testIds)) {
             res.status(400).json({
                 success: false,
@@ -185,6 +194,15 @@ export const updateLabTimeSlots = async (req: Request, res: Response): Promise<v
     try {
         const { id } = req.params;
         const { timeSlots } = req.body;
+
+        // Authorization: Ensure the requesting user is the lab
+        if (req.user?.userType !== 'lab' || req.user?.id.toString() !== id.toString()) {
+            res.status(403).json({
+                success: false,
+                message: 'You are not authorized to update this lab',
+            });
+            return;
+        }
 
         if (!timeSlots || !Array.isArray(timeSlots)) {
             res.status(400).json({

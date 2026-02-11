@@ -1162,7 +1162,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           email: phlebotomist.email,
           phone: phlebotomist.phone,
           qualification: phlebotomist.qualification,
-          availability: phlebotomist.availability,
+          availability: phlebotomist.isAvailable,
           trafficLicenseInfo: {
             filename: phlebotomist.trafficLicense.filename,
             size: phlebotomist.trafficLicense.size,
