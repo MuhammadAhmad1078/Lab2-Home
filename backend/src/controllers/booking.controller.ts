@@ -3,13 +3,15 @@ import Booking from '../models/Booking';
 import Test from '../models/Test';
 import Lab from '../models/Lab';
 import Patient from '../models/Patient';
+import * as payfastService from '../services/payfast.service';
+import Notification from '../models/Notification';
 
 // ============================================
 // CREATE BOOKING (Patient)
 // ============================================
 export const createBooking = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { patient, lab, tests, bookingDate, preferredTimeSlot, collectionType, collectionAddress, notes } = req.body;
+        const { patient, lab, tests, bookingDate, preferredTimeSlot, collectionType, collectionAddress, notes, paymentMethod } = req.body;
 
         // Validate required fields
         if (!patient || !lab || !tests || !Array.isArray(tests) || tests.length === 0 || !bookingDate || !preferredTimeSlot || !collectionType) {
@@ -94,10 +96,30 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
             totalAmount,
             notes,
             status: 'pending',
+            paymentMethod: paymentMethod || 'cash',
             paymentStatus: 'pending',
         });
 
         await booking.save();
+
+        // Prepare PayFast data if online payment
+        let paymentData = null;
+        if (paymentMethod === 'online') {
+            try {
+                paymentData = payfastService.generatePaymentData({
+                    orderId: booking._id.toString(),
+                    amount: totalAmount,
+                    itemName: `Lab Test Booking`,
+                    itemDescription: `Booking for ${testDocs.map(t => t.name).join(', ')}`,
+                    patientEmail: patientDoc.email,
+                    patientName: patientDoc.fullName,
+                    // Different notify URL for bookings
+                    notifyUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/bookings/itn`
+                });
+            } catch (payError) {
+                console.error('Error generating PayFast data for booking:', payError);
+            }
+        }
 
         // Populate the booking with related data
         await booking.populate([
@@ -151,7 +173,10 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
         res.status(201).json({
             success: true,
             message: 'Booking created successfully',
-            data: booking,
+            data: {
+                booking,
+                paymentData
+            },
         });
     } catch (error: any) {
         console.error('Create booking error:', error);
@@ -649,5 +674,72 @@ export const getReport = async (req: Request, res: Response): Promise<void> => {
     } catch (error: any) {
         console.error('Get report error:', error);
         res.status(500).json({ success: false, message: 'Failed to get report' });
+    }
+};
+// ============================================
+// HANDLE PAYFAST ITN (Webhooks)
+// ============================================
+export const handleBookingITN = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log('📥 Received PayFast ITN for Booking:', req.body);
+
+        const {
+            m_payment_id,
+            pf_payment_id,
+            payment_status,
+            item_name,
+            amount_gross,
+            signature,
+        } = req.body;
+
+        // 1. Validate Signature
+        const receivedSignature = signature;
+        const dataToVerify = { ...req.body };
+        delete dataToVerify.signature;
+
+        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
+
+        if (receivedSignature !== calculatedSignature) {
+            console.error('❌ PayFast Signature Validation Failed for Booking');
+            res.status(400).send('Invalid signature');
+            return;
+        }
+
+        // 2. Find Booking
+        const booking = await Booking.findById(m_payment_id);
+        if (!booking) {
+            console.error(`❌ Booking not found for ITN: ${m_payment_id}`);
+            res.status(404).send('Booking not found');
+            return;
+        }
+
+        // 3. Update Booking Status
+        if (payment_status === 'COMPLETE') {
+            booking.paymentStatus = 'paid';
+            booking.transactionId = pf_payment_id;
+            // For bookings, we might keep status as pending until lab confirms, 
+            // but we definitely mark as paid.
+            await booking.save();
+
+            // Notify patient
+            await Notification.create({
+                user: booking.patient,
+                userType: 'patient',
+                type: 'payment_completed',
+                title: 'Payment Received! 💳',
+                message: `Payment for your lab test booking was successful. Your booking is being processed.`,
+                relatedBooking: booking._id,
+            });
+
+            console.log(`✅ Booking ${booking._id} marked as PAID via PayFast`);
+        } else if (payment_status === 'FAILED') {
+            // paymentStatus stays pending or we could add a failed status
+            console.log(`⚠️ Payment FAILED for booking ${booking._id}`);
+        }
+
+        res.status(200).send('OK');
+    } catch (error) {
+        console.error('Error handling Booking ITN:', error);
+        res.status(500).send('Internal Server Error');
     }
 };

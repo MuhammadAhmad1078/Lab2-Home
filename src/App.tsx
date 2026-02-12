@@ -43,6 +43,8 @@ import Orders from "./pages/Orders";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
 
@@ -154,6 +156,22 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="patient">
                     <OrderDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment-success"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PaymentSuccess />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment-cancel"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PaymentCancel />
                   </ProtectedRoute>
                 }
               />

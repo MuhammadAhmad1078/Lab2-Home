@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   Loader2,
   Navigation,
+  CreditCard,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createBooking } from "@/lib/api";
@@ -70,6 +72,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
   const [date, setDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online">("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -197,12 +200,36 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
         preferredTimeSlot: selectedTime,
         collectionType,
         collectionAddress,
+        paymentMethod,
       };
 
       console.log('📤 Creating booking:', bookingData);
       const response = await createBooking(bookingData);
 
       if (response.success) {
+        if (paymentMethod === 'online' && response.data.paymentData) {
+          toast.info('Redirecting to secure payment gateway...');
+
+          const paymentData = response.data.paymentData;
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = paymentData.action_url;
+
+          Object.keys(paymentData).forEach(key => {
+            if (key !== 'action_url') {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = paymentData[key];
+              form.appendChild(input);
+            }
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        }
+
         toast.success("Booking confirmed! Lab has been notified.");
         // Reset form
         setSelectedTests([]);
@@ -596,6 +623,55 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Step 5: Payment Method */}
+      <div>
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            5
+          </span>
+          Payment Method
+        </h2>
+
+        <RadioGroup
+          value={paymentMethod}
+          onValueChange={(val) => setPaymentMethod(val as "cash" | "online")}
+          className="grid grid-cols-2 gap-4"
+        >
+          <Label
+            htmlFor="cash"
+            className={cn(
+              "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all",
+              paymentMethod === "cash"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/30"
+            )}
+          >
+            <RadioGroupItem value="cash" id="cash" />
+            <Wallet className="h-5 w-5 text-primary" />
+            <div>
+              <p className="font-medium">Cash at Lab</p>
+              <p className="text-xs text-muted-foreground">Pay when you visit</p>
+            </div>
+          </Label>
+          <Label
+            htmlFor="online"
+            className={cn(
+              "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all",
+              paymentMethod === "online"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/30"
+            )}
+          >
+            <RadioGroupItem value="online" id="online" />
+            <CreditCard className="h-5 w-5 text-accent" />
+            <div>
+              <p className="font-medium">Online Payment</p>
+              <p className="text-xs text-muted-foreground">Pay via PayFast</p>
+            </div>
+          </Label>
+        </RadioGroup>
       </div>
 
       {/* Submit */}

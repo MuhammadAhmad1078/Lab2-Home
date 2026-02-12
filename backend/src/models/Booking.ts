@@ -9,8 +9,10 @@ export interface IBooking extends Document {
     collectionType: 'home' | 'lab';
     collectionAddress?: string;
     status: 'pending' | 'confirmed' | 'in-progress' | 'sample_collected' | 'completed' | 'cancelled';
+    paymentMethod: 'cash' | 'online';
     paymentStatus: 'pending' | 'paid' | 'refunded';
     totalAmount: number;
+    transactionId?: string;
     notes?: string;
     phlebotomist?: mongoose.Types.ObjectId;
     phlebotomistRequestStatus?: 'none' | 'pending' | 'assigned' | 'rejected';
@@ -71,6 +73,11 @@ const bookingSchema = new Schema<IBooking>(
             enum: ['pending', 'confirmed', 'in-progress', 'sample_collected', 'completed', 'cancelled'],
             default: 'pending',
         },
+        paymentMethod: {
+            type: String,
+            enum: ['cash', 'online'],
+            default: 'cash',
+        },
         paymentStatus: {
             type: String,
             enum: ['pending', 'paid', 'refunded'],
@@ -80,6 +87,10 @@ const bookingSchema = new Schema<IBooking>(
             type: Number,
             required: [true, 'Total amount is required'],
             min: [0, 'Amount cannot be negative'],
+        },
+        transactionId: {
+            type: String,
+            trim: true,
         },
         notes: {
             type: String,
