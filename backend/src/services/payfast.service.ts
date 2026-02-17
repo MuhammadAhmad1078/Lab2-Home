@@ -31,9 +31,6 @@ export const generateSignature = (data: PayFastData, passphrase?: string): strin
     return crypto.createHash('md5').update(finalString).digest('hex');
 };
 
-/**
- * Prepares the data for a PayFast payment redirect.
- */
 export const generatePaymentData = (orderData: {
     orderId: string;
     amount: number;
@@ -50,22 +47,32 @@ export const generatePaymentData = (orderData: {
     const cancelUrl = process.env.PAYFAST_CANCEL_URL;
     const notifyUrl = orderData.notifyUrl || process.env.PAYFAST_NOTIFY_URL;
 
+    // PayFast data - REMOVED item_description as it's optional and may cause issues
     const data: PayFastData = {
         merchant_id: merchantId,
         merchant_key: merchantKey,
         return_url: returnUrl,
         cancel_url: cancelUrl,
         notify_url: notifyUrl,
-        name_first: orderData.patientName.split(' ')[0],
+        name_first: orderData.patientName.split(' ')[0] || 'Customer',
         name_last: orderData.patientName.split(' ').slice(1).join(' ') || 'User',
         email_address: orderData.patientEmail,
         m_payment_id: orderData.orderId,
         amount: orderData.amount.toFixed(2),
         item_name: orderData.itemName,
-        item_description: orderData.itemDescription || orderData.itemName,
+        // item_description removed - it's optional and may cause 400 errors
     };
 
+    console.log('📋 PayFast Data Before Signature:', JSON.stringify(data, null, 2));
+
     const signature = generateSignature(data, passphrase);
+
+    console.log('🔐 PayFast Payment Data Generated:', {
+        ...data,
+        signature,
+        passphrase_used: passphrase ? 'YES' : 'NO',
+        action_url: `${process.env.PAYFAST_BASE_URL}/eng/process`
+    });
 
     return {
         ...data,
@@ -73,3 +80,4 @@ export const generatePaymentData = (orderData: {
         action_url: `${process.env.PAYFAST_BASE_URL}/eng/process`
     };
 };
+

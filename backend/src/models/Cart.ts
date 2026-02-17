@@ -52,7 +52,5 @@ const cartSchema = new Schema<ICart>(
     }
 );
 
-// Index for faster patient cart lookup
-cartSchema.index({ patient: 1 });
 
 export default mongoose.model<ICart>('Cart', cartSchema);

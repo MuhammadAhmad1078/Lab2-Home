@@ -62,6 +62,5 @@ const testSchema = new Schema<ITest>(
 
 // Index for faster queries
 testSchema.index({ category: 1, isActive: 1 });
-testSchema.index({ name: 1 });
 
 export default mongoose.model<ITest>('Test', testSchema);

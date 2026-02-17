@@ -212,7 +212,6 @@ orderSchema.pre('save', async function (next) {
 
 // Indexes for efficient querying
 orderSchema.index({ patient: 1, createdAt: -1 });
-orderSchema.index({ orderNumber: 1 });
 orderSchema.index({ status: 1 });
 
 export default mongoose.model<IOrder>('Order', orderSchema);

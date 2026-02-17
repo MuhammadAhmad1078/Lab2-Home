@@ -25,7 +25,5 @@ const wishlistSchema = new Schema<IWishlist>(
     }
 );
 
-// Index for faster patient wishlist lookup
-wishlistSchema.index({ patient: 1 });
 
 export default mongoose.model<IWishlist>('Wishlist', wishlistSchema);
