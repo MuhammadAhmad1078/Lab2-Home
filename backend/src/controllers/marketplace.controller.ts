@@ -83,6 +83,8 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
             sortOption = { price: -1 };
         } else if (sortBy === 'name') {
             sortOption = { name: 1 };
+        } else if (sortBy === 'rating') {
+            sortOption = { averageRating: -1, totalReviews: -1 };
         }
 
         const [products, total] = await Promise.all([

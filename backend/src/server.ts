@@ -16,6 +16,7 @@ import chatRoutes from './routes/chat.routes';
 import contactRoutes from './routes/contact.routes';
 import adminRoutes from './routes/admin.routes';
 import marketplaceRoutes from './routes/marketplace.routes';
+import feedbackRoutes from './routes/feedback.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 import { initializeSocket } from './socket/chat.socket';
 import { setIO } from './controllers/chat.controller';
@@ -86,6 +87,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error Handling Middleware
 app.use(notFound); // 404 handler
