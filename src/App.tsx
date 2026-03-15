@@ -218,6 +218,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/lab/reviews"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lab/change-password"
                 element={
                   <ProtectedRoute allowedRole="lab">
@@ -260,6 +268,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/phlebotomist/reviews"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/phlebotomist/change-password"
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
@@ -274,6 +290,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/product-reviews"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminProductReviews />
                   </ProtectedRoute>
                 }
               />
