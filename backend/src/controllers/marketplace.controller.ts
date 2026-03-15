@@ -10,6 +10,7 @@ import path from 'path';
 import fs from 'fs';
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail, sendAdminNewOrderEmail } from '../services/email.service';
 import Patient from '../models/Patient';
+import * as payfastService from '../services/payfast.service';
 
 // ============================================
 // MULTER CONFIGURATION FOR PRODUCT IMAGES
@@ -729,26 +730,47 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             total,
             shippingAddress,
             paymentMethod,
-            paymentStatus: paymentMethod === 'cash_on_delivery' ? 'pending' : 'pending',
+            paymentStatus: 'pending',
             notes,
         });
 
-        // Update product stock
+        // Update product stock (always decrement stock for both COD and Online)
         for (const item of orderItems) {
             await Product.findByIdAndUpdate(item.product, {
                 $inc: { stock: -item.quantity },
             });
         }
 
+        // Prepare PayFast data if online payment
+        let paymentData = null;
+        if (paymentMethod === 'online') {
+            try {
+                const patient = await Patient.findById(patientId);
+                paymentData = payfastService.generatePaymentData({
+                    orderId: order.orderNumber,
+                    amount: total,
+                    itemName: `Order ${order.orderNumber}`,
+                    patientEmail: patient?.email || '',
+                    patientName: patient?.fullName || 'Customer',
+                });
+            } catch (payError) {
+                console.error('Error generating PayFast data:', payError);
+                // We'll still return the order, but notify about payment data failure
+            }
+        }
+
         // Clear cart
         cart.items = [];
         await cart.save();
 
-        // Send success response first
+        // Send success response
         res.status(201).json({
             success: true,
             message: 'Order created successfully',
-            data: order,
+            data: {
+                order,
+                paymentData // This will be null for COD
+            },
         });
 
         // Send Success Email (non-blocking)
@@ -1350,5 +1372,79 @@ export const processRefund = async (req: Request, res: Response): Promise<void> 
             message: 'Failed to process refund',
             error: error.message,
         });
+    }
+};
+
+// HANDLE PAYFAST ITN (Instant Transaction Notification)
+export const handlePayFastITN = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log('Received PayFast ITN:', req.body);
+
+        const {
+            m_payment_id, // This is our orderNumber
+            pf_payment_id, // PayFast transaction ID
+            payment_status,
+            item_name,
+            amount_gross,
+            signature,
+        } = req.body;
+
+        // 1. Validate Signature
+        const receivedSignature = signature;
+        const dataToVerify = { ...req.body };
+        delete dataToVerify.signature;
+
+        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
+
+        if (receivedSignature !== calculatedSignature) {
+            console.error('PayFast Signature Validation Failed');
+            res.status(400).send('Invalid signature');
+            return;
+        }
+
+        // 2. Find Order
+        const order = await Order.findOne({ orderNumber: m_payment_id });
+        if (!order) {
+            console.error(`Order not found for ITN: ${m_payment_id}`);
+            res.status(404).send('Order not found');
+            return;
+        }
+
+        // 3. Update Order Status
+        if (payment_status === 'COMPLETE') {
+            order.paymentStatus = 'completed';
+            order.transactionId = pf_payment_id;
+            // You might want to update order status to 'confirmed' automatically
+            order.status = 'confirmed';
+            await order.save();
+
+            // Notify patient
+            await Notification.create({
+                user: order.patient,
+                userType: 'patient',
+                type: 'payment_completed',
+                title: 'Payment Received! 💳',
+                message: `Payment for order ${order.orderNumber} was successful. Your order is now confirmed.`,
+                metadata: { orderId: order._id },
+            });
+        } else if (payment_status === 'FAILED') {
+            order.paymentStatus = 'failed';
+            await order.save();
+
+            await Notification.create({
+                user: order.patient,
+                userType: 'patient',
+                type: 'payment_failed',
+                title: 'Payment Failed ❌',
+                message: `Payment for order ${order.orderNumber} failed. Please try again or contact support.`,
+                metadata: { orderId: order._id },
+            });
+        }
+
+        // PayFast expects a 200 OK response
+        res.status(200).send('OK');
+    } catch (error: any) {
+        console.error('PayFast ITN Error:', error);
+        res.status(500).send('Internal Server Error');
     }
 };

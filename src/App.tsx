@@ -43,11 +43,8 @@ import Orders from "./pages/Orders";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
-import MyReviews from "./pages/MyReviews";
-import RatePhlebotomist from "./pages/RatePhlebotomist";
-import LabReviews from "./pages/LabReviews";
-import PhlebotomistReviews from "./pages/PhlebotomistReviews";
-import AdminProductReviews from "./pages/AdminProductReviews";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
 
@@ -163,18 +160,18 @@ const App = () => (
                 }
               />
               <Route
-                path="/patient/my-reviews"
+                path="/payment-success"
                 element={
                   <ProtectedRoute allowedRole="patient">
-                    <MyReviews />
+                    <PaymentSuccess />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/patient/rate-phlebotomist"
+                path="/payment-cancel"
                 element={
                   <ProtectedRoute allowedRole="patient">
-                    <RatePhlebotomist />
+                    <PaymentCancel />
                   </ProtectedRoute>
                 }
               />
