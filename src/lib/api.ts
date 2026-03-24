@@ -217,6 +217,16 @@ export const authAPI = {
   },
 };
 
+// Payment API functions
+export const paymentAPI = {
+  createPaymentIntent: async (bookingId: string) => {
+    return apiRequest('/payments/create-intent', {
+      method: 'POST',
+      body: JSON.stringify({ bookingId }),
+    });
+  },
+};
+
 // Lab API functions
 export const updateLabTests = async (labId: string, testIds: string[]): Promise<ApiResponse<any>> => {
   return apiRequest<any>(`/labs/${labId}/tests`, {

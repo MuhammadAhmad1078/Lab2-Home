@@ -22,12 +22,7 @@ export interface IBooking extends Document {
     reportData?: Buffer;
     reportContentType?: string;
     reportUploadedAt?: Date;
-    sampleCollection?: {
-        collectedAt: Date;
-        sampleId?: string;
-        notes?: string;
-        collectedBy?: mongoose.Types.ObjectId;
-    };
+    stripePaymentIntentId?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -126,22 +121,9 @@ const bookingSchema = new Schema<IBooking>(
         reportUploadedAt: {
             type: Date,
         },
-        sampleCollection: {
-            collectedAt: {
-                type: Date
-            },
-            sampleId: {
-                type: String,
-                trim: true
-            },
-            notes: {
-                type: String,
-                trim: true
-            },
-            collectedBy: {
-                type: Schema.Types.ObjectId,
-                ref: 'Phlebotomist'
-            }
+        stripePaymentIntentId: {
+            type: String,
+            trim: true,
         },
     },
     {
