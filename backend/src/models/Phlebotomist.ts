@@ -17,8 +17,10 @@ export interface IPhlebotomist extends Document {
     latitude: number;
     longitude: number;
   };
-  availability?: boolean;
+  isAvailable?: boolean;
   assignedLab?: mongoose.Types.ObjectId;
+  averageRating: number;
+  totalReviews: number;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -79,13 +81,23 @@ const phlebotomistSchema = new Schema<IPhlebotomist>(
       latitude: { type: Number },
       longitude: { type: Number },
     },
-    availability: {
+    isAvailable: {
       type: Boolean,
       default: true,
     },
     assignedLab: {
       type: Schema.Types.ObjectId,
       ref: 'Lab',
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
     },
     isVerified: {
       type: Boolean,
@@ -106,7 +118,7 @@ phlebotomistSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);

@@ -1,14 +1,17 @@
 const API_URL = 'http://localhost:5000/api/chat';
 
 export const chatService = {
-    createConversation: async (targetUserId: string, token: string) => {
+    createConversation: async (targetUserId: string, token: string, targetUserType?: string) => {
         const response = await fetch(`${API_URL}/conversation`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ targetUserId }),
+            body: JSON.stringify({
+                targetUserId,
+                targetUserType: targetUserType || 'patient' // Default to patient for backward compatibility
+            }),
         });
         return response.json();
     },

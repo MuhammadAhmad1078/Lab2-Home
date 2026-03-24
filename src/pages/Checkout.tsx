@@ -89,11 +89,37 @@ const Checkout = () => {
 
         try {
             setSubmitting(true);
-            await marketplaceService.createOrder(token, {
+            const response = await marketplaceService.createOrder(token, {
                 shippingAddress,
                 paymentMethod,
                 notes,
             });
+
+            const { order, paymentData } = response.data;
+
+            if (paymentMethod === 'online' && paymentData) {
+                toast.info('Redirecting to secure payment gateway...');
+
+                // Create and submit a dynamic form for PayFast
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = paymentData.action_url;
+
+                // Add all payment data fields as hidden inputs
+                Object.keys(paymentData).forEach(key => {
+                    if (key !== 'action_url') {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = paymentData[key];
+                        form.appendChild(input);
+                    }
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+                return; // Redirection happens here
+            }
 
             toast.success('Order placed successfully!');
             navigate('/patient/orders');
@@ -225,13 +251,13 @@ const Checkout = () => {
                                                 </div>
                                             </Label>
                                         </div>
-                                        <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 opacity-50">
-                                            <RadioGroupItem value="online" id="online" disabled />
+                                        <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
+                                            <RadioGroupItem value="online" id="online" />
                                             <Label htmlFor="online" className="flex items-center gap-2 cursor-pointer flex-1">
                                                 <CreditCard className="h-5 w-5" />
                                                 <div>
                                                     <p className="font-medium">Online Payment</p>
-                                                    <p className="text-sm text-gray-500">Coming soon</p>
+                                                    <p className="text-sm text-gray-500">Pay securely via PayFast</p>
                                                 </div>
                                             </Label>
                                         </div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { getToken } from "@/utils/storage";
 import {
   Calendar,
   FileUp,
@@ -61,7 +62,7 @@ const LabDashboard = () => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
 
         // Fetch bookings
         const bookingsResponse = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
@@ -128,7 +129,7 @@ const LabDashboard = () => {
 
     setSavingSlots(true);
     try {
-      const token = localStorage.getItem('lab2home_token');
+      const token = getToken();
       const response = await fetch(`http://localhost:5000/api/labs/${user.id}/time-slots`, {
         method: 'PUT',
         headers: {

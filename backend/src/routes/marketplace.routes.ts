@@ -25,6 +25,7 @@ import {
     updateOrderStatus,
     processRefund,
     uploadProductImages,
+    handlePayFastITN,
 } from '../controllers/marketplace.controller';
 import { protect, restrictTo } from '../middleware/auth.middleware';
 
@@ -90,5 +91,10 @@ router.delete('/admin/products/:id', protect, restrictTo('admin'), deleteProduct
 router.get('/admin/orders', protect, restrictTo('admin'), getAllOrders);
 router.put('/admin/orders/:id/status', protect, restrictTo('admin'), updateOrderStatus);
 router.post('/admin/orders/:id/refund', protect, restrictTo('admin'), processRefund);
+
+// ============================================
+// PAYFAST WEBHOOKS
+// ============================================
+router.post('/itn', handlePayFastITN);
 
 export default router;

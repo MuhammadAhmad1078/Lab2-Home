@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { TestTube, Save, CheckCircle2, AlertCircle, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { getToken } from '@/utils/storage';
 
 interface Test {
     _id: string;
@@ -107,7 +108,7 @@ const LabTestSelection = () => {
 
         setSaving(true);
         try {
-            const token = localStorage.getItem('lab2home_token');
+            const token = getToken();
             const response = await fetch(`http://localhost:5000/api/labs/${user?.id}/tests`, {
                 method: 'PUT',
                 headers: {

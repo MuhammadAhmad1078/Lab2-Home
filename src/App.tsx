@@ -43,6 +43,8 @@ import Orders from "./pages/Orders";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
 
@@ -157,6 +159,22 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/payment-success"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PaymentSuccess />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment-cancel"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <PaymentCancel />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* LAB ROUTES */}
               <Route
@@ -196,6 +214,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="lab">
                     <LabTestSelection />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/reviews"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabReviews />
                   </ProtectedRoute>
                 }
               />
@@ -242,6 +268,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/phlebotomist/reviews"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/phlebotomist/change-password"
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
@@ -256,6 +290,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/product-reviews"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminProductReviews />
                   </ProtectedRoute>
                 }
               />

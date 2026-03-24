@@ -116,7 +116,7 @@ const PhlebotomistManagement = () => {
         }
     };
 
-    const handleViewLicense = async (phlebotomist: phlebotomist) => {
+    const handleViewLicense = async (phlebotomist: Phlebotomist) => {
         try {
             const blob = await adminAPI.getPhlebotomistLicense(phlebotomist._id);
             const url = URL.createObjectURL(blob);
@@ -203,17 +203,26 @@ const PhlebotomistManagement = () => {
                 });
                 fetchPhlebotomists();
                 setRemoveDialog({ open: false, phlebotomist: null });
+            } else {
+                // Handle error response from backend
+                toast({
+                    title: "Error",
+                    description: response.message || "Failed to remove phlebotomist",
+                    variant: "destructive",
+                });
             }
         } catch (error: any) {
+            // Extract error message from API response
+            const errorMessage = error.response?.data?.message || error.message || "Failed to remove phlebotomist";
             toast({
                 title: "Error",
-                description: error.message || "Failed to remove phlebotomist",
+                description: errorMessage,
                 variant: "destructive",
             });
         }
     };
 
-    const handleActivate = async (phlebotomist: phlebotomist) => {
+    const handleActivate = async (phlebotomist: Phlebotomist) => {
         try {
             const response = await adminAPI.activatePhlebotomist(phlebotomist._id);
             if (response.success) {
@@ -232,7 +241,7 @@ const PhlebotomistManagement = () => {
         }
     };
 
-    const handleDeactivate = async (phlebotomist: phlebotomist) => {
+    const handleDeactivate = async (phlebotomist: Phlebotomist) => {
         try {
             const response = await adminAPI.deactivatePhlebotomist(phlebotomist._id);
             if (response.success) {
@@ -251,7 +260,7 @@ const PhlebotomistManagement = () => {
         }
     };
 
-    const getStatusBadge = (phlebotomist: phlebotomist) => {
+    const getStatusBadge = (phlebotomist: Phlebotomist) => {
         if (!phlebotomist.isActive) {
             return <Badge variant="destructive">Inactive</Badge>;
         }
@@ -467,7 +476,7 @@ const PhlebotomistManagement = () => {
             }}>
                 <DialogContent className="max-w-4xl max-h-[90vh]">
                     <DialogHeader>
-                        <DialogTitle>phlebotomist License - {licenseDialog.phlebotomist?.PhlebotomistName}</DialogTitle>
+                        <DialogTitle>Phlebotomist License - {licenseDialog.phlebotomist?.fullName}</DialogTitle>
                         <DialogDescription>
                             {licenseDialog.phlebotomist?.trafficLicense?.filename}
                         </DialogDescription>
@@ -494,7 +503,7 @@ const PhlebotomistManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Approve phlebotomist</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to approve {approveDialog.phlebotomist?.PhlebotomistName}?
+                            Are you sure you want to approve {approveDialog.phlebotomist?.fullName}?
                             <br />
                             <span className="text-sm text-muted-foreground mt-2 block">
                                 This phlebotomist will be visible to patients and can start accepting bookings.
@@ -518,7 +527,7 @@ const PhlebotomistManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Reject phlebotomist</DialogTitle>
                         <DialogDescription>
-                            Provide a reason for rejecting {rejectDialog.phlebotomist?.PhlebotomistName}
+                            Provide a reason for rejecting {rejectDialog.phlebotomist?.fullName}
                         </DialogDescription>
                     </DialogHeader>
                     <Textarea
@@ -528,7 +537,7 @@ const PhlebotomistManagement = () => {
                         rows={4}
                     />
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setRejectDialog({ open, phlebotomist: null })}>
+                        <Button variant="outline" onClick={() => setRejectDialog({ open: false, phlebotomist: null })}>
                             Cancel
                         </Button>
                         <Button variant="destructive" onClick={handleReject}>
@@ -544,7 +553,7 @@ const PhlebotomistManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Remove phlebotomist</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to remove {removeDialog.phlebotomist?.PhlebotomistName}?
+                            Are you sure you want to remove {removeDialog.phlebotomist?.fullName}?
                             <br />
                             <span className="text-sm text-destructive mt-2 block">
                                 This action cannot be undone. The phlebotomist will be permanently deleted.

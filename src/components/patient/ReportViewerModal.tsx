@@ -9,6 +9,7 @@ import { Download, Printer, X, Loader2 } from "lucide-react";
 import { ReportBooking, getReportUrl } from "@/services/reportService";
 import { toast } from "sonner";
 import axios from "axios";
+import { getToken } from "@/utils/storage";
 
 interface ReportViewerModalProps {
     booking: ReportBooking | null;
@@ -47,7 +48,7 @@ export function ReportViewerModal({
         if (!booking) return;
 
         try {
-            const token = localStorage.getItem('lab2home_token');
+            const token = getToken();
             const reportUrl = getReportUrl(booking._id);
 
             // Fetch the file to check its content type

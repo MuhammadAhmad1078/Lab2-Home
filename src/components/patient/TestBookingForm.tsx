@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   Loader2,
   Navigation,
+  CreditCard,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createBooking, paymentAPI } from "@/lib/api";
@@ -75,6 +77,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
   const [date, setDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online">("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -205,6 +208,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
         preferredTimeSlot: selectedTime,
         collectionType,
         collectionAddress,
+        paymentMethod,
       };
 
       console.log('📤 Creating booking:', bookingData);
