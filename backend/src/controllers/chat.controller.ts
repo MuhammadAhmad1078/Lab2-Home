@@ -14,7 +14,7 @@ export const setIO = (socketIO: Server) => {
 // Create or Get Conversation
 export const createConversation = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { targetUserId } = req.body; // Lab ID if patient, Patient ID if lab
+        const { targetUserId, targetUserType } = req.body; // Target user ID and type
         const userId = req.user?.id;
         const userType = req.user?.userType;
 
@@ -23,24 +23,81 @@ export const createConversation = async (req: Request, res: Response): Promise<v
             return;
         }
 
-        let patientId, labId;
+        let patientId, labId, phlebotomistId;
+        let participants: ('patient' | 'lab' | 'phlebotomist')[] = [];
 
-        if (userType === 'patient') {
+        // Determine conversation participants based on user types
+        if (userType === 'patient' && targetUserType === 'lab') {
             patientId = userId;
             labId = targetUserId;
-        } else if (userType === 'lab') {
+            participants = ['patient', 'lab'];
+        } else if (userType === 'patient' && targetUserType === 'phlebotomist') {
+            patientId = userId;
+            phlebotomistId = targetUserId;
+            participants = ['patient', 'phlebotomist'];
+        } else if (userType === 'lab' && targetUserType === 'patient') {
             patientId = targetUserId;
             labId = userId;
+            participants = ['patient', 'lab'];
+        } else if (userType === 'lab' && targetUserType === 'phlebotomist') {
+            // NEW: Lab-Phlebotomist conversation
+            labId = userId;
+            phlebotomistId = targetUserId;
+            participants = ['lab', 'phlebotomist'];
+            // For Lab-Phlebotomist, we need a patient context (find common booking)
+            const commonBooking = await Booking.findOne({
+                lab: labId,
+                phlebotomist: phlebotomistId,
+            }).select('patient');
+            if (commonBooking) {
+                patientId = commonBooking.patient;
+            } else {
+                res.status(403).json({ success: false, message: 'No common booking found between lab and phlebotomist.' });
+                return;
+            }
+        } else if (userType === 'phlebotomist' && targetUserType === 'patient') {
+            patientId = targetUserId;
+            phlebotomistId = userId;
+            participants = ['patient', 'phlebotomist'];
+        } else if (userType === 'phlebotomist' && targetUserType === 'lab') {
+            // NEW: Phlebotomist-Lab conversation
+            phlebotomistId = userId;
+            labId = targetUserId;
+            participants = ['lab', 'phlebotomist'];
+            // Find common booking
+            const commonBooking = await Booking.findOne({
+                lab: labId,
+                phlebotomist: phlebotomistId,
+            }).select('patient');
+            if (commonBooking) {
+                patientId = commonBooking.patient;
+            } else {
+                res.status(403).json({ success: false, message: 'No common booking found between lab and phlebotomist.' });
+                return;
+            }
         } else {
-            res.status(403).json({ success: false, message: 'Only patients and labs can chat' });
+            res.status(403).json({ success: false, message: 'Invalid conversation participants' });
             return;
         }
 
-        // Check if booking exists
-        const bookingExists = await Booking.exists({
-            patient: patientId,
-            lab: labId,
-        });
+        // Check if booking exists based on conversation type
+        let bookingExists;
+        if (labId && phlebotomistId && !patientId) {
+            // Lab-Phlebotomist conversation (patient already validated above)
+            bookingExists = true;
+        } else if (labId && patientId) {
+            // Patient-Lab conversation
+            bookingExists = await Booking.exists({
+                patient: patientId,
+                lab: labId,
+            });
+        } else if (phlebotomistId && patientId) {
+            // Patient-Phlebotomist conversation
+            bookingExists = await Booking.exists({
+                patient: patientId,
+                phlebotomist: phlebotomistId,
+            });
+        }
 
         if (!bookingExists) {
             res.status(403).json({ success: false, message: 'You can only chat if there is a booking history.' });
@@ -48,13 +105,26 @@ export const createConversation = async (req: Request, res: Response): Promise<v
         }
 
         // Check if conversation exists
-        let conversation = await Conversation.findOne({ patient: patientId, lab: labId });
+        let conversation;
+        if (labId && phlebotomistId) {
+            // Lab-Phlebotomist conversation
+            conversation = await Conversation.findOne({ lab: labId, phlebotomist: phlebotomistId });
+        } else if (labId) {
+            conversation = await Conversation.findOne({ patient: patientId, lab: labId });
+        } else if (phlebotomistId) {
+            conversation = await Conversation.findOne({ patient: patientId, phlebotomist: phlebotomistId });
+        }
 
         if (!conversation) {
-            conversation = await Conversation.create({
+            const conversationData: any = {
                 patient: patientId,
-                lab: labId,
-            });
+                participants,
+            };
+
+            if (labId) conversationData.lab = labId;
+            if (phlebotomistId) conversationData.phlebotomist = phlebotomistId;
+
+            conversation = await Conversation.create(conversationData);
         }
 
         res.status(200).json({ success: true, conversation });
@@ -74,11 +144,20 @@ export const getConversations = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        const query = userType === 'patient' ? { patient: userId } : { lab: userId };
+        let query: any = {};
+
+        if (userType === 'patient') {
+            query = { patient: userId };
+        } else if (userType === 'lab') {
+            query = { lab: userId };
+        } else if (userType === 'phlebotomist') {
+            query = { phlebotomist: userId };
+        }
 
         const conversations = await Conversation.find(query)
-            .populate('patient', 'fullName email')
-            .populate('lab', 'labName email')
+            .populate('patient', 'fullName email phone')
+            .populate('lab', 'labName email phone')
+            .populate('phlebotomist', 'fullName email phone')
             .sort({ updatedAt: -1 });
 
         res.status(200).json({ success: true, conversations });
@@ -93,7 +172,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
         console.log('sendMessage called');
         const { conversationId, content } = req.body;
         const userId = req.user?.id;
-        const userType = req.user?.userType;
+        const userType = req.user?.userType as 'patient' | 'lab' | 'phlebotomist';
         const files = req.files as Express.Multer.File[];
 
         console.log('Request body:', req.body);
@@ -107,20 +186,35 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
         }
 
         // Verify conversation participation
-        const conversation = await Conversation.findById(conversationId);
+        const conversation = await Conversation.findById(conversationId).populate('booking');
         if (!conversation) {
             console.log('Conversation not found:', conversationId);
             res.status(404).json({ success: false, message: 'Conversation not found' });
             return;
         }
 
-        if (
-            (userType === 'patient' && conversation.patient.toString() !== userId) ||
-            (userType === 'lab' && conversation.lab.toString() !== userId)
-        ) {
+        // Check if user is participant in conversation
+        const isParticipant =
+            (userType === 'patient' && conversation.patient.toString() === userId) ||
+            (userType === 'lab' && conversation.lab?.toString() === userId) ||
+            (userType === 'phlebotomist' && conversation.phlebotomist?.toString() === userId);
+
+        if (!isParticipant) {
             console.log('User not authorized for this conversation');
             res.status(403).json({ success: false, message: 'Not authorized to send message to this conversation' });
             return;
+        }
+
+        // Check if conversation is locked (report uploaded)
+        if (conversation.booking) {
+            const booking = conversation.booking as any;
+            if (booking.reportUploadedAt) {
+                res.status(403).json({
+                    success: false,
+                    message: 'This conversation is locked. The report has been uploaded and the booking is complete.'
+                });
+                return;
+            }
         }
 
         // Process attachments
@@ -149,38 +243,59 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
         conversation.lastMessage = content || (attachments.length > 0 ? 'Attachment' : '');
         conversation.lastMessageAt = new Date();
 
-        // Increment unread count for recipient
-        // Increment unread count for recipient
-        let recipientId: string;
-        let recipientType: 'patient' | 'lab';
+        // Increment unread count for recipients
+        const recipients: Array<{ id: string; type: 'patient' | 'lab' | 'phlebotomist' }> = [];
 
         if (userType === 'patient') {
-            conversation.unreadCount.lab += 1;
-            recipientId = conversation.lab.toString();
-            recipientType = 'lab';
-        } else {
-            conversation.unreadCount.patient += 1;
-            recipientId = conversation.patient.toString();
-            recipientType = 'patient';
+            if (conversation.lab) {
+                conversation.unreadCount.lab = (conversation.unreadCount.lab || 0) + 1;
+                recipients.push({ id: conversation.lab.toString(), type: 'lab' });
+            }
+            if (conversation.phlebotomist) {
+                conversation.unreadCount.phlebotomist = (conversation.unreadCount.phlebotomist || 0) + 1;
+                recipients.push({ id: conversation.phlebotomist.toString(), type: 'phlebotomist' });
+            }
+        } else if (userType === 'lab') {
+            if (conversation.patient) {
+                conversation.unreadCount.patient = (conversation.unreadCount.patient || 0) + 1;
+                recipients.push({ id: conversation.patient.toString(), type: 'patient' });
+            }
+            if (conversation.phlebotomist) {
+                conversation.unreadCount.phlebotomist = (conversation.unreadCount.phlebotomist || 0) + 1;
+                recipients.push({ id: conversation.phlebotomist.toString(), type: 'phlebotomist' });
+            }
+        } else if (userType === 'phlebotomist') {
+            if (conversation.patient) {
+                conversation.unreadCount.patient = (conversation.unreadCount.patient || 0) + 1;
+                recipients.push({ id: conversation.patient.toString(), type: 'patient' });
+            }
+            if (conversation.lab) {
+                conversation.unreadCount.lab = (conversation.unreadCount.lab || 0) + 1;
+                recipients.push({ id: conversation.lab.toString(), type: 'lab' });
+            }
         }
+
         await conversation.save();
         console.log('Conversation updated');
 
-        // Create In-App Notification using dynamic import to avoid circular dependencies
+        // Create In-App Notifications for all recipients
         try {
             const { createNotification } = await import('./notification.controller');
-            await createNotification({
-                user: recipientId,
-                userType: recipientType,
-                type: 'new_message',
-                title: 'New Message 💬',
-                message: `You have a new message from ${userType === 'patient' ? 'Patient' : 'Lab'}.`,
-                metadata: {
-                    conversationId: conversationId,
-                    senderType: userType,
-                }
-            });
-            console.log(`✅ In-app notification sent to ${recipientType} ${recipientId}`);
+
+            for (const recipient of recipients) {
+                await createNotification({
+                    user: recipient.id,
+                    userType: recipient.type,
+                    type: 'new_message',
+                    title: 'New Message 💬',
+                    message: `You have a new message from ${userType}.`,
+                    metadata: {
+                        conversationId: conversationId,
+                        senderType: userType,
+                    }
+                });
+                console.log(`✅ In-app notification sent to ${recipient.type} ${recipient.id}`);
+            }
         } catch (notifError) {
             console.error('❌ Failed to create message notification:', notifError);
         }
@@ -248,8 +363,10 @@ export const markMessagesAsRead = async (req: Request, res: Response): Promise<v
         if (conversation) {
             if (userType === 'patient') {
                 conversation.unreadCount.patient = 0;
-            } else {
+            } else if (userType === 'lab') {
                 conversation.unreadCount.lab = 0;
+            } else if (userType === 'phlebotomist') {
+                conversation.unreadCount.phlebotomist = 0;
             }
             await conversation.save();
         }

@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getTrafficLicense, getDashboard } from '../controllers/phlebotomist.controller';
+import {
+    getTrafficLicense,
+    getDashboard,
+    getAssignedBookings,
+    getTodaysBookings,
+    updateBookingStatus,
+    updateAvailability,
+    getPerformanceMetrics
+} from '../controllers/phlebotomist.controller';
 import { authenticateToken, authorizeUserType } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -8,11 +16,21 @@ const router = Router();
 router.use(authenticateToken);
 router.use(authorizeUserType('phlebotomist'));
 
-// Get dashboard data
+// Dashboard
 router.get('/dashboard', getDashboard);
 
-// Get traffic license file
+// Traffic license
 router.get('/traffic-license', getTrafficLicense);
 
-export default router;
+// Booking management
+router.get('/bookings', getAssignedBookings);
+router.get('/bookings/today', getTodaysBookings);
+router.put('/bookings/:id/status', updateBookingStatus);
 
+// Availability management
+router.put('/availability', updateAvailability);
+
+// Performance metrics
+router.get('/metrics', getPerformanceMetrics);
+
+export default router;

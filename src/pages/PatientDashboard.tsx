@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { getToken } from "@/utils/storage";
 import {
   TestTube,
   FileCheck,
@@ -15,10 +16,13 @@ import {
   Heart,
   Loader2,
   Sparkles,
-  Lightbulb
+  Lightbulb,
+  Star,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import FeedbackForm from "@/components/shared/FeedbackForm";
 
 interface Booking {
   _id: string;
@@ -29,7 +33,12 @@ interface Booking {
     basePrice: number;
   }>;
   lab: {
+    _id: string;
     labName: string;
+  };
+  phlebotomist?: {
+    _id: string;
+    fullName: string;
   };
   bookingDate: string;
   preferredTimeSlot: string;
@@ -50,6 +59,7 @@ const PatientDashboard = () => {
     pending: 0,
     upcoming: 0
   });
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
   // Daily Health Tips
   const healthTips = [
@@ -80,7 +90,7 @@ const PatientDashboard = () => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         const response = await fetch(`http://localhost:5000/api/bookings/patient/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -228,6 +238,17 @@ const PatientDashboard = () => {
                     >
                       {booking.status}
                     </span>
+                    {booking.status === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-2 text-xs gap-1 border-warning/40 text-warning hover:bg-warning/10"
+                        onClick={(e) => { e.stopPropagation(); setReviewBooking(booking); }}
+                      >
+                        <Star className="h-3 w-3" />
+                        Rate
+                      </Button>
+                    )}
                   </motion.div>
                 ))
               )}
@@ -338,8 +359,63 @@ const PatientDashboard = () => {
           )}
         </Card>
       </motion.div>
+
+      {/* Review Panel Overlay */}
+      {reviewBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto m-4"
+          >
+            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between rounded-t-2xl z-10">
+              <div>
+                <h3 className="font-semibold text-lg text-foreground">Rate Your Experience</h3>
+                <p className="text-sm text-muted-foreground">
+                  {reviewBooking.tests?.map(t => t.name).join(', ')}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setReviewBooking(null)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-6 space-y-6">
+              {/* Lab Review */}
+              {reviewBooking.lab?._id && (
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Lab: {reviewBooking.lab.labName}
+                  </h4>
+                  <FeedbackForm
+                    targetType="lab"
+                    targetId={reviewBooking.lab._id}
+                    targetName={reviewBooking.lab.labName}
+                    onSubmitted={() => { }}
+                  />
+                </div>
+              )}
+
+              {/* Phlebotomist Review */}
+              {reviewBooking.phlebotomist?._id && (
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Phlebotomist: {reviewBooking.phlebotomist.fullName}
+                  </h4>
+                  <FeedbackForm
+                    targetType="phlebotomist"
+                    targetId={reviewBooking.phlebotomist._id}
+                    targetName={reviewBooking.phlebotomist.fullName}
+                    onSubmitted={() => { }}
+                  />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
 
 export default PatientDashboard;
+

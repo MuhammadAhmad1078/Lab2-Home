@@ -28,10 +28,6 @@ const NotificationBell: React.FC = () => {
 
         // Navigate based on notification type
         if (notification.type === 'status_update' || notification.type === 'booking_created') {
-            // Check user role to determine path (this assumes we can infer or pass role, 
-            // but for now let's use a generic approach or check the URL/context if available)
-            // For simplicity, we'll navigate to the dashboard which usually has the relevant info
-            // or specific booking details if we had a detailed view implemented
             if (window.location.pathname.includes('/lab')) {
                 navigate('/lab/appointments');
             } else {
@@ -39,6 +35,12 @@ const NotificationBell: React.FC = () => {
             }
         } else if (notification.type === 'report_uploaded') {
             navigate('/patient/reports');
+        } else if (notification.type === 'phlebotomist_request_sent') {
+            navigate('/phlebotomist/appointments');
+        } else if (notification.type === 'phlebotomist_request_accepted' || notification.type === 'phlebotomist_request_rejected') {
+            navigate('/lab/appointments');
+        } else if (notification.type === 'phlebotomist_assigned') {
+            navigate('/patient/dashboard'); // Or booking details
         }
 
         setIsOpen(false);
@@ -54,6 +56,14 @@ const NotificationBell: React.FC = () => {
                 return '📅';
             case 'booking_cancelled':
                 return '❌';
+            case 'phlebotomist_request_sent':
+                return '📩';
+            case 'phlebotomist_request_accepted':
+                return '✅';
+            case 'phlebotomist_request_rejected':
+                return '🚫';
+            case 'phlebotomist_assigned':
+                return '🩺';
             default:
                 return '📢';
         }

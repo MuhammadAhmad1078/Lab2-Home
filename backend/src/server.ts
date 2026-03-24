@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import connectDatabase from './config/database';
 import authRoutes from './routes/auth.routes';
 import phlebotomistRoutes from './routes/phlebotomist.routes';
+import phlebotomistRequestRoutes from './routes/phlebotomistRequest.routes';
 import testRoutes from './routes/test.routes';
 import bookingRoutes from './routes/booking.routes';
 import labRoutes from './routes/lab.routes';
@@ -15,6 +16,7 @@ import chatRoutes from './routes/chat.routes';
 import contactRoutes from './routes/contact.routes';
 import adminRoutes from './routes/admin.routes';
 import marketplaceRoutes from './routes/marketplace.routes';
+import feedbackRoutes from './routes/feedback.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 import { initializeSocket } from './socket/chat.socket';
 import { setIO } from './controllers/chat.controller';
@@ -37,6 +39,9 @@ const io = new Server(httpServer, {
 // Setup Socket.io
 initializeSocket(io);
 setIO(io);
+
+// Export getIO function for other controllers
+export const getIO = () => io;
 
 // Middleware
 app.use(cors({
@@ -73,6 +78,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/phlebotomist', phlebotomistRoutes);
+app.use('/api/phlebotomist-request', phlebotomistRequestRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/labs', labRoutes);
@@ -81,6 +87,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error Handling Middleware
 app.use(notFound); // 404 handler

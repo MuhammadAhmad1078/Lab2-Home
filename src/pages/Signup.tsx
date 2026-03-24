@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { authAPI } from "@/lib/api";
+import * as storage from "@/utils/storage";
 import {
   Form,
   FormControl,
@@ -1065,8 +1066,8 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
       const response = await authAPI.verifyOTP(signupEmail, otp, role);
 
       if (response.success && response.data) {
-        // Save token
-        localStorage.setItem("lab2home_token", response.data.token);
+        // Save token using centralized storage utility
+        storage.setToken(response.data.token);
 
         toast({
           title: "Email Verified!",

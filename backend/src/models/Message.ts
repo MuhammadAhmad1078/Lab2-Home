@@ -9,7 +9,7 @@ export interface IAttachment {
 
 export interface IMessage extends Document {
     conversation: mongoose.Types.ObjectId;
-    sender: 'patient' | 'lab';
+    sender: 'patient' | 'lab' | 'phlebotomist';
     senderId: mongoose.Types.ObjectId;
     content?: string;
     attachments: IAttachment[];
@@ -34,7 +34,7 @@ const messageSchema = new Schema<IMessage>(
         },
         sender: {
             type: String,
-            enum: ['patient', 'lab'],
+            enum: ['patient', 'lab', 'phlebotomist'],
             required: true,
         },
         senderId: {

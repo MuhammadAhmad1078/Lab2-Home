@@ -8,16 +8,26 @@ export interface IBooking extends Document {
     preferredTimeSlot: string;
     collectionType: 'home' | 'lab';
     collectionAddress?: string;
-    status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'in-progress' | 'sample_collected' | 'completed' | 'cancelled';
+    paymentMethod: 'cash' | 'online';
     paymentStatus: 'pending' | 'paid' | 'refunded';
     totalAmount: number;
+    transactionId?: string;
     notes?: string;
     phlebotomist?: mongoose.Types.ObjectId;
+    phlebotomistRequestStatus?: 'none' | 'pending' | 'assigned' | 'rejected';
+    assignmentHistory?: mongoose.Types.ObjectId[];
     cancelReason?: string;
     reportUrl?: string;
     reportData?: Buffer;
     reportContentType?: string;
     reportUploadedAt?: Date;
+    sampleCollection?: {
+        collectedAt: Date;
+        sampleId?: string;
+        notes?: string;
+        collectedBy?: mongoose.Types.ObjectId;
+    };
     createdAt: Date;
     updatedAt: Date;
 }
@@ -60,8 +70,13 @@ const bookingSchema = new Schema<IBooking>(
         },
         status: {
             type: String,
-            enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'],
+            enum: ['pending', 'confirmed', 'in-progress', 'sample_collected', 'completed', 'cancelled'],
             default: 'pending',
+        },
+        paymentMethod: {
+            type: String,
+            enum: ['cash', 'online'],
+            default: 'cash',
         },
         paymentStatus: {
             type: String,
@@ -73,6 +88,10 @@ const bookingSchema = new Schema<IBooking>(
             required: [true, 'Total amount is required'],
             min: [0, 'Amount cannot be negative'],
         },
+        transactionId: {
+            type: String,
+            trim: true,
+        },
         notes: {
             type: String,
             trim: true,
@@ -81,6 +100,15 @@ const bookingSchema = new Schema<IBooking>(
             type: Schema.Types.ObjectId,
             ref: 'Phlebotomist',
         },
+        phlebotomistRequestStatus: {
+            type: String,
+            enum: ['none', 'pending', 'assigned', 'rejected'],
+            default: 'none',
+        },
+        assignmentHistory: [{
+            type: Schema.Types.ObjectId,
+            ref: 'PhlebotomistRequest',
+        }],
         cancelReason: {
             type: String,
             trim: true,
@@ -97,6 +125,23 @@ const bookingSchema = new Schema<IBooking>(
         },
         reportUploadedAt: {
             type: Date,
+        },
+        sampleCollection: {
+            collectedAt: {
+                type: Date
+            },
+            sampleId: {
+                type: String,
+                trim: true
+            },
+            notes: {
+                type: String,
+                trim: true
+            },
+            collectedBy: {
+                type: Schema.Types.ObjectId,
+                ref: 'Phlebotomist'
+            }
         },
     },
     {

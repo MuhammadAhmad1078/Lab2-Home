@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { getToken } from "@/utils/storage";
 import { toast } from "sonner";
 import { uploadReport } from "@/lib/api";
 import {
@@ -48,7 +49,7 @@ const LabUploadReport: React.FC = () => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('lab2home_token');
+        const token = getToken();
         // Fetch all bookings, we'll filter client side for now as backend API returns all
         // Ideally backend should support filtering by reportUrl existence
         const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}?status=completed`, {
