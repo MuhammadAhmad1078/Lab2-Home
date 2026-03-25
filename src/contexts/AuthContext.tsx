@@ -45,13 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       storage.migrateFromLocalStorage();
 
       const storedToken = storage.getToken();
-      console.log('🔍 Checking auth on mount, token exists:', !!storedToken);
 
       if (storedToken) {
         setToken(storedToken);
         try {
           const response = await authAPI.getMe();
-          console.log('📥 getMe response:', response);
 
           if (response.success && response.data) {
             const userData: User = {
@@ -68,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(userData);
             storage.setUser(userData);
           } else {
-            console.log('❌ Auth check failed, removing token');
             storage.clearAuth();
             removeApiToken();
             setToken(null);
@@ -100,8 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Call unified login endpoint with explicitly selected role
       const response = await authAPI.login(email, password, role);
-
-      console.log('📥 Login response:', response);
 
       if (response.success && response.data) {
         console.log('✅ Login successful, user data:', response.data.user);
