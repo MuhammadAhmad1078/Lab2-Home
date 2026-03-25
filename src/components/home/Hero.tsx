@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Sparkles, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import Squares from "./Squares";
-import CardNav from "./CardNav";
+import Navbar from "@/components/shared/Navbar";
 import SplitText from "@/components/shared/SplitText";
 import { publicNavItems } from "@/config/public-nav";
 import logo from "/logo.svg";
@@ -12,13 +12,7 @@ const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
-      <CardNav
-        logo={logo}
-        logoAlt="Lab2Home Logo"
-        items={publicNavItems}
-        baseColor="#fff"
-        menuColor="hsl(200 85% 45%)"
-      />
+      <Navbar />
       <Squares speed={0.5} squareSize={40} direction="diagonal" />
 
       <div className="relative z-10 container mx-auto px-4 py-20 pointer-events-none">

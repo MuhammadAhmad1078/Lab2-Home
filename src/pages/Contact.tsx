@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import Footer from "@/components/shared/Footer";
-import CardNav from "@/components/home/CardNav";
+import Navbar from "@/components/shared/Navbar";
 // import Squares from "@/components/home/Squares"; // Removed the Squares component
 import { publicNavItems } from "@/config/public-nav";
 import logo from "/logo.svg";
@@ -158,13 +158,7 @@ const Contact = () => {
     return (
         <div className={`min-h-screen flex flex-col relative ${SOFT_BG} overflow-x-hidden`}>
             {/* Navigation (Keep as is, adjusted color if needed) */}
-            <CardNav
-                logo={logo}
-                logoAlt="Lab2Home Logo"
-                items={publicNavItems}
-                baseColor="#fff"
-                menuColor="hsl(200 85% 45%)"
-            />
+            <Navbar />
 
             {/* Hero Section */}
             <section className="relative z-10 pt-32 pb-16 px-4 text-center">

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link, useLocation } from "react-router-dom";
 import Footer from "@/components/shared/Footer";
-import CardNav from "@/components/home/CardNav";
+import Navbar from "@/components/shared/Navbar";
 import Squares from "@/components/home/Squares";
 import { publicNavItems } from "@/config/public-nav";
 import logo from "/logo.svg";
@@ -26,13 +26,7 @@ const About = () => {
 
     return (
         <div className="min-h-screen flex flex-col relative">
-            <CardNav
-                logo={logo}
-                logoAlt="Lab2Home Logo"
-                items={publicNavItems}
-                baseColor="#fff"
-                menuColor="hsl(200 85% 45%)"
-            />
+            <Navbar />
 
 
             {/* Hero Section */}
