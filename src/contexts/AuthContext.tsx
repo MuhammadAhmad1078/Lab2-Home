@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Navigate based on user type
         const path = `/${userData.userType}`;
         console.log('🚀 Navigating to:', path);
-        navigate(path, { replace: true });
+        navigate(path);
 
         return { success: true };
       }

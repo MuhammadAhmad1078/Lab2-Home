@@ -26,7 +26,7 @@ import {
   ShieldCheck,
   Activity,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import logo from "/logo.svg";
@@ -65,8 +65,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // If a user navigates back to the login page via browser back button,
+    // ensure their token is expired/cleared as requested.
+    if (isAuthenticated) {
+      logout();
+    }
+  }, [isAuthenticated, logout]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

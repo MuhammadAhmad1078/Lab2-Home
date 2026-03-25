@@ -20,7 +20,7 @@ const Hero = () => {
     return (
         <section className="relative min-h-[95vh] w-full flex items-center justify-center overflow-hidden pt-24 pb-20 auth-gradient-panel">
             <Navbar />
-            
+
             {/* Background Blobs for Hero */}
             <Blob className="top-10 left-10 w-72 h-72 bg-white" />
             <Blob className="bottom-0 right-10 w-[26rem] h-[26rem] bg-blue-300 animation-delay-2000" />
@@ -47,7 +47,7 @@ const Hero = () => {
                     {/* Main Heading */}
                     <div className="mb-6">
                         <SplitText
-                            text="Healthcare at your Doorstep"
+                            text="Lab at your Doorstep"
                             tag="h1"
                             className="text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] font-extrabold text-white leading-[1.1] tracking-tight"
                             splitType="chars"
