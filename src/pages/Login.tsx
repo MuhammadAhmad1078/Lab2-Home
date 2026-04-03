@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -139,18 +139,20 @@ const RoleSelection = ({
 export default function Login() {
   const [role, setRole] = useState<UserRole | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, logout, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user, loading } = useAuth();
   const { toast } = useToast();
+  const loginNavigate = useNavigate();
 
   useEffect(() => {
-    // If a user navigates back to the login page via browser back button,
-    // ensure their token is expired/cleared as requested.
-    if (isAuthenticated) {
-      logout();
+    // If the user is already authenticated (e.g. via "Remember Me"),
+    // redirect them to their dashboard instead of logging them out.
+    if (!loading && isAuthenticated && user) {
+      loginNavigate(`/${user.userType}`, { replace: true });
     }
-  }, [isAuthenticated, logout]);
+  }, [isAuthenticated, user, loading, loginNavigate]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -165,7 +167,7 @@ export default function Login() {
     setIsLoading(true);
     setLoginError("");
 
-    const result = await login(data.email, data.password, role);
+    const result = await login(data.email, data.password, role, rememberMe);
 
     setIsLoading(false);
 
@@ -406,6 +408,8 @@ export default function Login() {
                             type="checkbox"
                             id="remember"
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
                           />
                           <label
                             htmlFor="remember"

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X, UserPlus, LogIn } from "lucide-react";
+import { Menu, X, UserPlus, LogIn, LogOut, Activity } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import logo from "/logo.svg";
 
 // Traditional flat navigation items
@@ -19,6 +20,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
 
   // Handle scroll effect
   useEffect(() => {
@@ -99,24 +101,45 @@ const Navbar = () => {
             </nav>
 
             {/* Desktop CTA Buttons */}
-            <div className="hidden md:flex items-center gap-3 shrink-0">
-              <Button
-                variant="ghost"
-                asChild
-                className="font-medium hover:bg-primary/10 hover:text-primary transition-colors rounded-full"
-              >
-                <Link to="/login">Sign In</Link>
-              </Button>
-              <Button
-                asChild
-                className="rounded-full px-6 shadow-soft hover:shadow-medium transition-all group font-medium"
-              >
-                <Link to="/signup">
-                  Get Started
-                  <UserPlus className="ml-2 w-4 h-4 group-hover:scale-110 transition-transform" />
-                </Link>
-              </Button>
-            </div>
+            {isAuthenticated ? (
+              <div className="hidden md:flex items-center gap-3 shrink-0">
+                <Button
+                  variant="ghost"
+                  onClick={logout}
+                  className="font-medium hover:bg-primary/10 hover:text-primary transition-colors rounded-full"
+                >
+                  Log Out
+                </Button>
+                <Button
+                  asChild
+                  className="rounded-full px-6 shadow-soft hover:shadow-medium transition-all group font-medium"
+                >
+                  <Link to={`/${user?.role || ''}`}>
+                    Dashboard
+                    <Activity className="ml-2 w-4 h-4 group-hover:scale-110 transition-transform" />
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-3 shrink-0">
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="font-medium hover:bg-primary/10 hover:text-primary transition-colors rounded-full"
+                >
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="rounded-full px-6 shadow-soft hover:shadow-medium transition-all group font-medium"
+                >
+                  <Link to="/signup">
+                    Get Started
+                    <UserPlus className="ml-2 w-4 h-4 group-hover:scale-110 transition-transform" />
+                  </Link>
+                </Button>
+              </div>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button
@@ -164,23 +187,48 @@ const Navbar = () => {
               transition={{ delay: 0.4 }}
               className="flex flex-col gap-3 pt-6 shrink-0"
             >
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="w-full justify-center border-primary/20 text-primary hover:bg-primary/5 rounded-xl h-14"
-              >
-                <Link to="/login">
-                  <LogIn className="w-5 h-5 mr-3" />
-                  Sign In
-                </Link>
-              </Button>
-              <Button size="lg" asChild className="w-full justify-center shadow-medium text-base rounded-xl h-14">
-                <Link to="/signup">
-                  <UserPlus className="w-5 h-5 mr-3" />
-                  Create Account
-                </Link>
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full justify-center border-primary/20 text-primary hover:bg-primary/5 rounded-xl h-14"
+                  >
+                    <LogOut className="w-5 h-5 mr-3" />
+                    Log Out
+                  </Button>
+                  <Button size="lg" asChild className="w-full justify-center shadow-medium text-base rounded-xl h-14">
+                    <Link to={`/${user?.role || ''}`}>
+                      <Activity className="w-5 h-5 mr-3" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    asChild
+                    className="w-full justify-center border-primary/20 text-primary hover:bg-primary/5 rounded-xl h-14"
+                  >
+                    <Link to="/login">
+                      <LogIn className="w-5 h-5 mr-3" />
+                      Sign In
+                    </Link>
+                  </Button>
+                  <Button size="lg" asChild className="w-full justify-center shadow-medium text-base rounded-xl h-14">
+                    <Link to="/signup">
+                      <UserPlus className="w-5 h-5 mr-3" />
+                      Create Account
+                    </Link>
+                  </Button>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}
