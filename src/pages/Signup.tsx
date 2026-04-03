@@ -223,37 +223,39 @@ const PasswordInput = ({
 };
 
 // ── Role Selection ─────────────────────────────────────────────────────────────
+const roleDetails: Record<UserRole, { id: UserRole; title: string; description: string; icon: React.ElementType; color: string; bg: string }> = {
+  patient: {
+    id: "patient",
+    title: "Patient",
+    description: "Book tests, view reports & manage your health",
+    icon: User,
+    color: "text-primary",
+    bg: "bg-primary/10 group-hover:bg-primary/20",
+  },
+  lab: {
+    id: "lab",
+    title: "Lab",
+    description: "Manage tests, appointments & digital reports",
+    icon: FlaskConical,
+    color: "text-health",
+    bg: "bg-health/10 group-hover:bg-health/20",
+  },
+  phlebotomist: {
+    id: "phlebotomist",
+    title: "Phlebotomist",
+    description: "Collect samples at patient locations",
+    icon: Bike,
+    color: "text-secondary",
+    bg: "bg-secondary/10 group-hover:bg-secondary/20",
+  },
+};
+
 const RoleSelection = ({
   onSelectRole,
 }: {
   onSelectRole: (role: UserRole) => void;
 }) => {
-  const roles: { id: UserRole; title: string; description: string; icon: React.ElementType; color: string; bg: string }[] = [
-    {
-      id: "patient",
-      title: "Patient",
-      description: "Book tests, view reports & manage your health",
-      icon: User,
-      color: "text-primary",
-      bg: "bg-primary/10 group-hover:bg-primary/20",
-    },
-    {
-      id: "lab",
-      title: "Lab",
-      description: "Manage tests, appointments & digital reports",
-      icon: FlaskConical,
-      color: "text-health",
-      bg: "bg-health/10 group-hover:bg-health/20",
-    },
-    {
-      id: "phlebotomist",
-      title: "Phlebotomist",
-      description: "Collect samples at patient locations",
-      icon: Bike,
-      color: "text-secondary",
-      bg: "bg-secondary/10 group-hover:bg-secondary/20",
-    },
-  ];
+  const roles = Object.values(roleDetails);
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -987,10 +989,21 @@ const Signup = () => {
 
             {/* Card */}
             <div className="glass-card rounded-2xl p-8 animate-fade-in-up">
-              <h1 className="text-3xl font-bold text-foreground mb-1">
-                {selectedRole ? `${getRoleTitle(selectedRole)} Registration` : "Join Lab2Home"}
-              </h1>
-              <p className="text-muted-foreground mb-6">
+              <div className="flex items-center gap-4 mb-2">
+                {selectedRole && (() => {
+                  const Icon = roleDetails[selectedRole].icon;
+                  const baseBg = roleDetails[selectedRole].bg.split(' ')[0];
+                  return (
+                    <div className={`${baseBg} p-2.5 rounded-xl border border-border/40 shadow-sm animate-fade-in`}>
+                      <Icon className={`w-7 h-7 ${roleDetails[selectedRole].color}`} />
+                    </div>
+                  );
+                })()}
+                <h1 className="text-3xl font-bold text-foreground">
+                  {selectedRole ? `${getRoleTitle(selectedRole)} Registration` : "Join Lab2Home"}
+                </h1>
+              </div>
+              <p className="text-muted-foreground mb-6 mt-2">
                 {selectedRole
                   ? `Complete your ${getRoleTitle(selectedRole).toLowerCase()} registration below`
                   : "Start your journey to better health at home"}
