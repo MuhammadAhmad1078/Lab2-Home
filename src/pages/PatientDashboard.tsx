@@ -391,6 +391,7 @@ const PatientDashboard = () => {
                     targetType="lab"
                     targetId={reviewBooking.lab._id}
                     targetName={reviewBooking.lab.labName}
+                    bookingId={reviewBooking._id}
                     onSubmitted={() => { }}
                   />
                 </div>
@@ -406,6 +407,7 @@ const PatientDashboard = () => {
                     targetType="phlebotomist"
                     targetId={reviewBooking.phlebotomist._id}
                     targetName={reviewBooking.phlebotomist.fullName}
+                    bookingId={reviewBooking._id}
                     onSubmitted={() => { }}
                   />
                 </div>
