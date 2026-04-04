@@ -43,3 +43,4 @@ backend/test-output-update-sample.txt
 backend/test-output-manage-appointments.txt
 backend/test-output-manage-marketplace.txt
 backend/test-output-marketplace-explore.txt
+backend/test-output-manage-users.txt
