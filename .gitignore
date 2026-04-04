@@ -39,3 +39,4 @@ backend/test-output-payment.txt
 backend/test-output-notifications.txt
 backend/test-output-feedback.txt
 backend/test-output-phlebotomist.txt
+backend/test-output-update-sample.txt
