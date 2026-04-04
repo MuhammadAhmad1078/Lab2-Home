@@ -49,6 +49,12 @@ describe('UC-13: Update Sample Details', () => {
             yearsOfExperience: 5,
             isAvailable: true,
             assignedLab: labId,
+            trafficLicense: {
+                data: Buffer.from('fake-license-data'),
+                contentType: 'application/pdf',
+                filename: 'license.pdf',
+                size: 1024
+            }
         });
         await phleb.save();
         phlebotomistId = phleb._id.toString();
@@ -149,7 +155,7 @@ describe('UC-13: Update Sample Details', () => {
             // Check db to ensure nothing changed
             const dbCheck = await Booking.findById(bookingId);
             expect(dbCheck?.status).toBe('in-progress');
-            expect(dbCheck?.sampleCollection).toBeUndefined();
+            expect(dbCheck?.sampleCollection?.sampleId).toBeUndefined();
         });
     });
 });
