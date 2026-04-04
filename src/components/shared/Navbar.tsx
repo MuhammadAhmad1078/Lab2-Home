@@ -49,8 +49,12 @@ const Navbar = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group z-50 shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <img src={logo} alt="Lab2Home" className="w-6 h-6" />
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+                <img
+                  src={logo}
+                  alt="Lab2Home"
+                  className="h-full w-full origin-center scale-[1.8] object-contain"
+                />
               </div>
               <span className="font-bold text-xl tracking-tight hidden sm:block">
                 <span className="text-foreground">Lab2</span>
