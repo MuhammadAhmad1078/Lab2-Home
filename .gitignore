@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 backend/.env
 USECASE_ANALYSIS.md
+Lab2HomeDiagrams-UseCaseDiagram.png
+backend/test-output-lab.txt
+backend/test-output-login.txt
+backend/test-output.txt
