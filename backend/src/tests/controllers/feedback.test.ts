@@ -110,12 +110,20 @@ describe('UC-11: Provide Rating and Feedback', () => {
         // Create Delivered Order
         const deliveredOrder = await Order.create({
             patient: patient._id,
-            items: [{ product: product._id, quantity: 1, price: 500 }],
-            totalAmount: 500,
-            shippingAddress: '123 Test St',
+            items: [{ product: product._id, productName: 'Thermometer', quantity: 1, price: 500 }],
+            subtotal: 500,
+            total: 500,
+            shippingAddress: {
+                fullName: 'John Doe',
+                phone: '1234567890',
+                addressLine1: '123 Test St',
+                city: 'Test City',
+                state: 'Test State',
+                postalCode: '12345'
+            },
             status: 'delivered',
-            paymentMethod: 'cash',
-            paymentStatus: 'unpaid'
+            paymentMethod: 'cash_on_delivery',
+            paymentStatus: 'pending'
         });
         deliveredOrderId = deliveredOrder._id.toString();
 
