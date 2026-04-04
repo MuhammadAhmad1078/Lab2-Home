@@ -41,3 +41,5 @@ backend/test-output-feedback.txt
 backend/test-output-phlebotomist.txt
 backend/test-output-update-sample.txt
 backend/test-output-manage-appointments.txt
+backend/test-output-manage-marketplace.txt
+backend/test-output-marketplace-explore.txt
