@@ -177,8 +177,11 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           isMobile ? "z-50 w-[min(18rem,calc(100vw-1rem))] shadow-xl" : cn("z-40", sidebarOpen ? "w-64" : "w-20")
         )}
       >
-        {/* Logo/Header */}
-        <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+        {/* Logo/Header — navigates to role dashboard */}
+        <Link
+          to={`/${role}`}
+          className="flex h-16 items-center gap-3 border-b border-border px-4 cursor-pointer hover:bg-muted/50 transition-colors"
+        >
           <div
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-xl transition-transform hover:scale-105",
@@ -201,7 +204,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
               <p className="text-xs text-muted-foreground truncate">{config.title}</p>
             </motion.div>
           )}
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="px-3 py-4 flex-shrink-0">
