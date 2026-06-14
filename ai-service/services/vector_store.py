@@ -95,11 +95,14 @@ def init_vector_store():
                 "values": embedding,
                 "metadata": {
                     "name": test["name"],
-                    "aliases": ",".join(test["aliases"]),
-                    "criticalLow": test["criticalLow"],
-                    "criticalHigh": test["criticalHigh"],
+                    "aliases": ",".join(test.get("aliases", [])),
+                    "criticalLow": test.get("criticalLow", 0.0),
+                    "criticalHigh": test.get("criticalHigh", 0.0),
+                    "qualitative": str(test.get("qualitative", False)),
+                    "positiveStatus": test.get("positiveStatus", ""),
+                    "negativeStatus": test.get("negativeStatus", ""),
                     # Store ranges as JSON string (Pinecone metadata limits)
-                    "ranges_json": str(test["ranges"]),
+                    "ranges_json": str(test.get("ranges", [])),
                 },
             })
 
@@ -166,16 +169,19 @@ def find_range_semantic(test_name: str, age: int, sex: str) -> dict | None:
         canonical_sex = "male" if sex_lower == "male" else ("female" if sex_lower == "female" else "any")
 
         best_range = _select_best_range(ranges, age, canonical_sex)
-        if not best_range:
+        if not best_range and metadata.get("qualitative") != "True":
             return None
 
         return {
             "testName": metadata["name"],
-            "normalMin": best_range["min"],
-            "normalMax": best_range["max"],
-            "unit": best_range["unit"],
-            "criticalLow": metadata.get("criticalLow", 0),
-            "criticalHigh": metadata.get("criticalHigh", 0),
+            "normalMin": best_range["min"] if best_range else None,
+            "normalMax": best_range["max"] if best_range else None,
+            "unit": best_range["unit"] if best_range else "",
+            "criticalLow": metadata.get("criticalLow", 0.0),
+            "criticalHigh": metadata.get("criticalHigh", 0.0),
+            "qualitative": metadata.get("qualitative") == "True",
+            "positiveStatus": metadata.get("positiveStatus"),
+            "negativeStatus": metadata.get("negativeStatus"),
         }
 
     except Exception as e:

@@ -71,17 +71,20 @@ def find_reference_range(test_name: str, age: int, sex: str) -> dict | None:
         return None
 
     # Find the best range for this patient
-    best_range = _select_best_range(matched_test["ranges"], age, canonical_sex)
-    if not best_range:
+    best_range = _select_best_range(matched_test.get("ranges", []), age, canonical_sex)
+    if not best_range and not matched_test.get("qualitative"):
         return None
 
     return {
         "testName": matched_test["name"],
-        "normalMin": best_range["min"],
-        "normalMax": best_range["max"],
-        "unit": best_range["unit"],
-        "criticalLow": matched_test["criticalLow"],
-        "criticalHigh": matched_test["criticalHigh"],
+        "normalMin": best_range["min"] if best_range else None,
+        "normalMax": best_range["max"] if best_range else None,
+        "unit": best_range["unit"] if best_range else "",
+        "criticalLow": matched_test.get("criticalLow"),
+        "criticalHigh": matched_test.get("criticalHigh"),
+        "qualitative": matched_test.get("qualitative", False),
+        "positiveStatus": matched_test.get("positiveStatus"),
+        "negativeStatus": matched_test.get("negativeStatus"),
     }
 
 
@@ -106,9 +109,9 @@ def _select_best_range(ranges: list, age: int, sex: str) -> dict | None:
     return age_matches[0]
 
 
-def classify_value(value: float, range_obj: dict | None) -> str:
+def classify_value(value, range_obj: dict | None) -> str:
     """
-    Classify a numeric value against a reference range.
+    Classify a numeric or qualitative value against a reference range.
     Returns: 'Good' | 'Needs Attention' | 'Critical' | 'Unknown'
 
     IMPORTANT: This function — not the AI — always controls classification.
@@ -116,13 +119,41 @@ def classify_value(value: float, range_obj: dict | None) -> str:
     if range_obj is None:
         return "Unknown"
 
+    if range_obj.get("qualitative"):
+        v = str(value).lower().strip()
+        is_positive = (
+            "positive" in v or
+            v == "reactive" or
+            v == "detected" or
+            v == "present" or
+            v == "yes"
+        )
+        is_negative = (
+            "negative" in v or
+            v == "non-reactive" or
+            v == "not detected" or
+            v == "absent" or
+            v == "no" or
+            v == "nil"
+        )
+        if is_positive:
+            return range_obj.get("positiveStatus", "Needs Attention")
+        if is_negative:
+            return range_obj.get("negativeStatus", "Good")
+        return "Unknown"
+
+    try:
+        num = float(value)
+    except (ValueError, TypeError):
+        return "Unknown"
+
     critical_low = range_obj.get("criticalLow")
     critical_high = range_obj.get("criticalHigh")
 
     # Check critical thresholds first
-    if critical_low is not None and value < critical_low:
+    if critical_low is not None and num < critical_low:
         return "Critical"
-    if critical_high is not None and value > critical_high:
+    if critical_high is not None and num > critical_high:
         return "Critical"
 
     # Check normal range
@@ -130,7 +161,7 @@ def classify_value(value: float, range_obj: dict | None) -> str:
     normal_max = range_obj.get("normalMax")
 
     if normal_min is not None and normal_max is not None:
-        if normal_min <= value <= normal_max:
+        if normal_min <= num <= normal_max:
             return "Good"
 
     # Outside normal but not critical

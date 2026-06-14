@@ -13,9 +13,14 @@ export interface MatchedRange {
   min: number;
   max: number;
   unit: string;
-  criticalLow: number;
-  criticalHigh: number;
+  criticalLow?: number;
+  criticalHigh?: number;
   description: string;
+  qualitative?: boolean;
+  normalMin?: number;
+  normalMax?: number;
+  positiveStatus?: 'Good' | 'Needs Attention' | 'Critical';
+  negativeStatus?: 'Good' | 'Needs Attention' | 'Critical';
 }
 
 /** Classification result */
@@ -98,16 +103,20 @@ export function findReferenceRange(
 
   // Find the best-matching range for this patient
   const range = selectBestRange(matchedTest.ranges, patientAge, sex);
-  if (!range) return null;
-
+  
   return {
     testName: matchedTest.name,
-    min: range.min,
-    max: range.max,
-    unit: range.unit,
+    min: range ? range.min : 0,
+    max: range ? range.max : 0,
+    unit: range ? range.unit : '',
     criticalLow: matchedTest.criticalLow,
     criticalHigh: matchedTest.criticalHigh,
-    description: matchedTest.description,
+    description: matchedTest.content,
+    qualitative: matchedTest.qualitative,
+    normalMin: range ? range.min : undefined,
+    normalMax: range ? range.max : undefined,
+    positiveStatus: matchedTest.positiveStatus,
+    negativeStatus: matchedTest.negativeStatus
   };
 }
 
@@ -120,6 +129,7 @@ function selectBestRange(
   age: number,
   sex: string
 ): ReferenceRange | null {
+  if (!ranges || ranges.length === 0) return null;
   // Filter ranges that cover the patient's age
   const ageMatches = ranges.filter(r => age >= r.minAge && age <= r.maxAge);
   if (ageMatches.length === 0) return null;
@@ -144,22 +154,46 @@ function selectBestRange(
 /**
  * Classify a numeric value against a reference range.
  */
-export function classifyValue(
-  value: number,
-  range: MatchedRange | null
-): ClassificationStatus {
-  if (!range) return 'Unknown';
+export function classifyValue(value: any, rangeObject: any): ClassificationStatus {
+  // No range found in DB at all
+  if (!rangeObject) return "Unknown";
 
-  // Check critical thresholds first
-  if (value <= range.criticalLow || value >= range.criticalHigh) {
-    return 'Critical';
+  // Handle qualitative tests (Positive/Negative/Reactive etc.)
+  if (rangeObject.qualitative) {
+    const v = String(value).toLowerCase().trim();
+
+    const isPositive =
+      v.includes('positive') ||
+      v === 'reactive'       ||
+      v === 'detected'       ||
+      v === 'present'        ||
+      v === 'yes';
+
+    const isNegative =
+      v.includes('negative')     ||
+      v === 'non-reactive'       ||
+      v === 'not detected'       ||
+      v === 'absent'             ||
+      v === 'no'                 ||
+      v === 'nil';
+
+    if (isPositive) return rangeObject.positiveStatus || "Needs Attention";
+    if (isNegative) return rangeObject.negativeStatus || "Good";
+    return "Unknown";
   }
 
-  // Check normal range
-  if (value >= range.min && value <= range.max) {
-    return 'Good';
-  }
+  // Handle numeric tests
+  const num = parseFloat(value);
+  if (isNaN(num)) return "Unknown";
 
-  // Outside normal but not critical
-  return 'Needs Attention';
+  if (rangeObject.criticalLow !== undefined && num < rangeObject.criticalLow)
+    return "Critical";
+  if (rangeObject.criticalHigh !== undefined && num > rangeObject.criticalHigh)
+    return "Critical";
+  if (rangeObject.normalMin !== undefined && num < rangeObject.normalMin)
+    return "Needs Attention";
+  if (rangeObject.normalMax !== undefined && num > rangeObject.normalMax)
+    return "Needs Attention";
+
+  return "Good";
 }

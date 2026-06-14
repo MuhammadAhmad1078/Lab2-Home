@@ -23,6 +23,7 @@ import {
   Package,
   Star,
   X,
+  Home,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -177,9 +178,9 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           isMobile ? "z-50 w-[min(18rem,calc(100vw-1rem))] shadow-xl" : cn("z-40", sidebarOpen ? "w-64" : "w-20")
         )}
       >
-        {/* Logo/Header — navigates to role dashboard */}
+        {/* Logo/Header — navigates to home page */}
         <Link
-          to={`/${role}`}
+          to="/"
           className="flex h-16 items-center gap-3 border-b border-border px-4 cursor-pointer hover:bg-muted/50 transition-colors"
         >
           <div
@@ -344,6 +345,17 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
             </Button>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="rounded-full hover:bg-muted"
+              title="Go to Home Page"
+            >
+              <Link to="/">
+                <Home className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </Link>
+            </Button>
             <NotificationBell />
           </div>
         </header>
